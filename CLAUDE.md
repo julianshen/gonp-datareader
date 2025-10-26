@@ -152,6 +152,15 @@ This project follows **strict Test-Driven Development (TDD)** with the **Tidy Fi
 - Linters pass (`go vet ./...`)
 - Change is atomic (one logical unit)
 
+**CRITICAL: Always update Progress Tracking after completing a phase:**
+- Update `plan.md` "Progress Tracking" section at the bottom
+- Set "Current Phase" to current work
+- Set "Last Completed" to most recently finished phase
+- Set "Next Up" to next planned phase
+- Update statistics (commits, coverage, sources implemented)
+- **This must be done every time a phase/section is marked complete**
+- Do NOT skip this step - it's essential for tracking project status
+
 ---
 
 ## Testing Standards
