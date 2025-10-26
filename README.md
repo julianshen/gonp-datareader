@@ -4,6 +4,8 @@ Remote data access for financial and economic data sources in Go, designed to wo
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/julianshen/gonp-datareader.svg)](https://pkg.go.dev/github.com/julianshen/gonp-datareader)
 [![Go Report Card](https://goreportcard.com/badge/github.com/julianshen/gonp-datareader)](https://goreportcard.com/report/github.com/julianshen/gonp-datareader)
+[![CI](https://github.com/julianshen/gonp-datareader/actions/workflows/ci.yml/badge.svg)](https://github.com/julianshen/gonp-datareader/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/julianshen/gonp-datareader/branch/main/graph/badge.svg)](https://codecov.io/gh/julianshen/gonp-datareader)
 [![GitHub Release](https://img.shields.io/github/v/release/julianshen/gonp-datareader)](https://github.com/julianshen/gonp-datareader/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

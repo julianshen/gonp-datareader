@@ -27,9 +27,10 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 - ☑ Create initial README.md with project description
 - ☑ Add .gitignore for Go projects
 - ☑ Create Makefile with test, lint, fmt targets
-- ☐ Set up GitHub Actions or CI pipeline (optional)
+- ☑ Set up GitHub Actions or CI pipeline
 
 **Commit:** `chore: initialize project structure`
+**CI Commit:** `ci: add GitHub Actions workflows and linting configuration` ✅ Done (commit #79: e9ce71d)
 
 ### 0.2 Core Type Definitions ✓
 - ☑ Test: Package imports without errors
