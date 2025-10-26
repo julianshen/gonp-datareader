@@ -67,6 +67,7 @@ func main() {
 | **stooq** | Stooq - Free international stock data | No | `AAPL.US`, `^SPX` |
 | **iex** | IEX Cloud - Professional stock market data | Yes | `AAPL`, `MSFT` |
 | **tiingo** | Tiingo - High-quality stock market data & fundamentals | Yes | `AAPL`, `MSFT` |
+| **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
 
 *FRED works without an API key but has lower rate limits
 
@@ -171,6 +172,7 @@ See the [examples](./examples/) directory for complete working examples:
 - **[Stooq](./examples/stooq/)** - Free international stock market data
 - **[IEX Cloud](./examples/iex/)** - Professional stock market data
 - **[Tiingo](./examples/tiingo/)** - High-quality stock market data and fundamentals
+- **[OECD](./examples/oecd/)** - Economic indicators and statistics
 
 Run an example:
 ```bash
@@ -201,9 +203,11 @@ All core phases complete:
 - ✅ **Alpha Vantage**: Stock market data (requires API key)
 - ✅ **Stooq**: Free international stock market data
 - ✅ **IEX Cloud**: Professional stock market data (requires API token)
+- ✅ **Tiingo**: High-quality stock market data and fundamentals
+- ✅ **OECD**: Economic indicators and statistics (SDMX-JSON format)
 - ✅ **Rate Limiting**: Token bucket algorithm for API limits
 - ✅ **Response Caching**: File-based caching with TTL
-- ✅ **Comprehensive Tests**: >70% test coverage
+- ✅ **Comprehensive Tests**: >75% test coverage
 - ✅ **Full Documentation**: Package docs and examples
 
 ## Testing
