@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/julianshen/gonp-datareader"
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/internal/utils"
 	"github.com/julianshen/gonp-datareader/sources"
@@ -27,27 +26,20 @@ type YahooReader struct {
 }
 
 // NewYahooReader creates a new Yahoo Finance data reader.
-func NewYahooReader(opts *datareader.Options) *YahooReader {
+func NewYahooReader(opts *internalhttp.ClientOptions) *YahooReader {
 	return NewYahooReaderWithBaseURL(opts, yahooAPIURL)
 }
 
 // NewYahooReaderWithBaseURL creates a new Yahoo Finance reader with a custom base URL.
 // This is primarily used for testing with mock servers.
-func NewYahooReaderWithBaseURL(opts *datareader.Options, baseURL string) *YahooReader {
+func NewYahooReaderWithBaseURL(opts *internalhttp.ClientOptions, baseURL string) *YahooReader {
 	if opts == nil {
-		opts = datareader.DefaultOptions()
-	}
-
-	clientOpts := &internalhttp.ClientOptions{
-		Timeout:    opts.Timeout,
-		UserAgent:  opts.UserAgent,
-		MaxRetries: opts.MaxRetries,
-		RetryDelay: opts.RetryDelay,
+		opts = internalhttp.DefaultClientOptions()
 	}
 
 	return &YahooReader{
 		BaseSource: sources.NewBaseSource("yahoo"),
-		client:     internalhttp.NewRetryableClient(clientOpts),
+		client:     internalhttp.NewRetryableClient(opts),
 		baseURL:    baseURL,
 	}
 }

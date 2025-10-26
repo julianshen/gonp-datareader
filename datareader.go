@@ -1,0 +1,59 @@
+package datareader
+
+import (
+	"context"
+	"fmt"
+	"time"
+
+	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/sources"
+	"github.com/julianshen/gonp-datareader/sources/yahoo"
+)
+
+var (
+	// ErrUnknownSource is returned when an unknown data source is requested
+	ErrUnknownSource = fmt.Errorf("unknown data source")
+)
+
+// DataReader creates a new reader for the specified source.
+// Supported sources: "yahoo"
+func DataReader(source string, opts *Options) (sources.Reader, error) {
+	if source == "" {
+		return nil, fmt.Errorf("%w: source cannot be empty", ErrUnknownSource)
+	}
+
+	// Convert Options to ClientOptions
+	var clientOpts *internalhttp.ClientOptions
+	if opts != nil {
+		clientOpts = &internalhttp.ClientOptions{
+			Timeout:    opts.Timeout,
+			UserAgent:  opts.UserAgent,
+			MaxRetries: opts.MaxRetries,
+			RetryDelay: opts.RetryDelay,
+		}
+	}
+
+	switch source {
+	case "yahoo":
+		return yahoo.NewYahooReader(clientOpts), nil
+	default:
+		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
+	}
+}
+
+// Read is a convenience function that creates a reader and fetches data for a single symbol.
+func Read(ctx context.Context, symbol string, source string, start, end time.Time, opts *Options) (interface{}, error) {
+	reader, err := DataReader(source, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return reader.ReadSingle(ctx, symbol, start, end)
+}
+
+// ListSources returns a list of available data source names.
+func ListSources() []string {
+	return []string{
+		"yahoo",
+	}
+}
