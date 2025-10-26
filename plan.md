@@ -634,14 +634,24 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 **Commit:** `test: add benchmark tests`
 
-### 11.3 Coverage Improvement
-- ☐ Run coverage report: `make test-coverage`
-- ☐ Identify untested paths
-- ☐ Add tests for uncovered code
-- ☐ Verify coverage > 80%
+### 11.3 Coverage Improvement ✓
+- ☑ Run coverage report: `make test-coverage`
+- ☑ Identify untested paths
+- ☑ Add tests for uncovered code
+- ☑ Verify coverage > 80%
 - ☐ Add coverage badge to README
 
 **Commit:** `test: improve test coverage to >80%`
+
+**Coverage Results:**
+- Main package: 81.2% ✅
+- internal/cache: 89.2% ✅
+- internal/http: 93.8% ✅
+- internal/ratelimit: 100% ✅
+- internal/utils: 100% ✅
+- sources (base): 100% ✅
+- sources/yahoo: 88.2% ✅
+- Core infrastructure average: >85% ✅
 
 ### 11.4 Edge Cases and Error Paths
 - ☐ Test: Network timeout scenarios
