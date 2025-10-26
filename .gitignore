@@ -34,6 +34,16 @@ dist/
 examples/*/basic
 examples/*/advanced
 examples/*/fred
+examples/*/iex
+examples/*/stooq
+
+# Test binaries (executables in root)
+/iex
+/stooq
+/yahoo.test
+/fred
+/worldbank
+/alphavantage
 
 # Coverage reports
 coverage.out
