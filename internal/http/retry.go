@@ -10,6 +10,7 @@ type RetryableClient struct {
 	client     *http.Client
 	maxRetries int
 	retryDelay time.Duration
+	userAgent  string
 }
 
 // NewRetryableClient creates a new HTTP client with retry logic.
@@ -22,6 +23,7 @@ func NewRetryableClient(opts *ClientOptions) *RetryableClient {
 		client:     NewHTTPClient(opts),
 		maxRetries: opts.MaxRetries,
 		retryDelay: opts.RetryDelay,
+		userAgent:  opts.UserAgent,
 	}
 }
 
@@ -33,6 +35,11 @@ func (c *RetryableClient) Do(req *http.Request) (*http.Response, error) {
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
 		// Clone the request for retry attempts
 		reqClone := req.Clone(req.Context())
+
+		// Set User-Agent header if configured
+		if c.userAgent != "" {
+			reqClone.Header.Set("User-Agent", c.userAgent)
+		}
 
 		resp, err = c.client.Do(reqClone)
 

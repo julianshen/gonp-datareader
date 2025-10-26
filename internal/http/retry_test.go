@@ -163,6 +163,76 @@ func TestRetryableClient_NoRetryOn4xx(t *testing.T) {
 	}
 }
 
+func TestRetryableClient_SetsUserAgent(t *testing.T) {
+	var capturedUA string
+
+	// Server that captures User-Agent header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedUA = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	customUA := "gonp-datareader/1.0 test-client"
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		UserAgent:  customUA,
+		MaxRetries: 1,
+		RetryDelay: 10 * time.Millisecond,
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	req, err := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if capturedUA != customUA {
+		t.Errorf("Expected User-Agent %q, got %q", customUA, capturedUA)
+	}
+}
+
+func TestRetryableClient_DefaultUserAgent(t *testing.T) {
+	var capturedUA string
+
+	// Server that captures User-Agent header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedUA = r.Header.Get("User-Agent")
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// Use default options (should have default User-Agent)
+	client := internalhttp.NewRetryableClient(nil)
+
+	req, err := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	if err != nil {
+		t.Fatalf("Failed to create request: %v", err)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if capturedUA == "" {
+		t.Error("Expected default User-Agent to be set, got empty string")
+	}
+
+	// Should contain "gonp-datareader"
+	if capturedUA == "" || len(capturedUA) == 0 {
+		t.Errorf("Expected non-empty User-Agent, got %q", capturedUA)
+	}
+}
+
 func TestShouldRetry(t *testing.T) {
 	tests := []struct {
 		name       string
