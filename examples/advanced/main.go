@@ -19,13 +19,14 @@ func main() {
 
 	ctx := context.Background()
 
-	// Custom options with longer timeout and more retries
+	// Custom options with longer timeout, more retries, and rate limiting
 	// Note: UserAgent should be browser-like for Yahoo Finance compatibility
 	opts := &datareader.Options{
 		Timeout:    60 * time.Second,
 		MaxRetries: 5,
 		RetryDelay: 2 * time.Second,
 		UserAgent:  "Mozilla/5.0 (compatible; gonp-datareader/1.0)",
+		RateLimit:  2.0, // Limit to 2 requests per second
 	}
 
 	fmt.Println("\nConfiguration:")
@@ -33,6 +34,7 @@ func main() {
 	fmt.Printf("  Max Retries: %d\n", opts.MaxRetries)
 	fmt.Printf("  Retry Delay: %v\n", opts.RetryDelay)
 	fmt.Printf("  User Agent: %s\n", opts.UserAgent)
+	fmt.Printf("  Rate Limit: %.1f req/sec\n", opts.RateLimit)
 
 	// Create reader with custom options
 	reader, err := datareader.DataReader("yahoo", opts)

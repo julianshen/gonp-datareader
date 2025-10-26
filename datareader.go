@@ -32,6 +32,7 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 			UserAgent:  opts.UserAgent,
 			MaxRetries: opts.MaxRetries,
 			RetryDelay: opts.RetryDelay,
+			RateLimit:  opts.RateLimit,
 		}
 		apiKey = opts.APIKey
 	}
