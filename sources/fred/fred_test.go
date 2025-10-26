@@ -190,8 +190,8 @@ func TestFREDReader_ReadSingle_InvalidDateRange(t *testing.T) {
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&
 		(s == substr ||
-		 len(s) > len(substr) &&
-		 (hasSubstring(s, substr)))
+			len(s) > len(substr) &&
+				(hasSubstring(s, substr)))
 }
 
 func hasSubstring(s, substr string) bool {

@@ -4,6 +4,9 @@ package worldbank
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
+	"strings"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -43,8 +46,56 @@ func BuildURL(country, indicator string, start, end time.Time) string {
 // ReadSingle fetches data for a single indicator and country.
 // The symbol parameter should be in the format "country/indicator", e.g., "USA/NY.GDP.MKTP.CD"
 func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	// Validate symbol
+	if err := w.ValidateSymbol(symbol); err != nil {
+		return nil, err
+	}
+
+	// Parse symbol into country and indicator
+	// For World Bank, symbol format is "country/indicator"
+	// Example: "USA/NY.GDP.MKTP.CD"
+	parts := splitSymbol(symbol)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid symbol format: expected 'country/indicator', got %q", symbol)
+	}
+
+	country := parts[0]
+	indicator := parts[1]
+
+	// Build URL
+	url := BuildURL(country, indicator, start, end)
+
+	// Create HTTP request
+	req, err := newRequest(ctx, "GET", url)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := w.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Read response body
+	body, err := readAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse response
+	data, err := ParseResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple indicators and countries.
@@ -56,4 +107,20 @@ func (w *WorldBankReader) Read(ctx context.Context, symbols []string, start, end
 // ValidateSymbol checks if a symbol is valid for World Bank.
 func (w *WorldBankReader) ValidateSymbol(symbol string) error {
 	return w.BaseSource.ValidateSymbol(symbol)
+}
+
+// splitSymbol splits a World Bank symbol into country and indicator.
+// Expected format: "country/indicator" or "country;country2/indicator"
+func splitSymbol(symbol string) []string {
+	return strings.Split(symbol, "/")
+}
+
+// newRequest creates a new HTTP request with context.
+func newRequest(ctx context.Context, method, url string) (*http.Request, error) {
+	return http.NewRequestWithContext(ctx, method, url, nil)
+}
+
+// readAll reads all data from a reader.
+func readAll(r io.Reader) ([]byte, error) {
+	return io.ReadAll(r)
 }
