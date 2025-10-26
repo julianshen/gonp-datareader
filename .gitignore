@@ -33,6 +33,7 @@ bin/
 dist/
 examples/*/basic
 examples/*/advanced
+examples/*/fred
 
 # Coverage reports
 coverage.out

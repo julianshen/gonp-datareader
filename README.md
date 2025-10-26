@@ -80,13 +80,18 @@ func main() {
 
 See the [examples](./examples/) directory for complete working examples:
 
-- [Basic Usage](./examples/basic/) - Simple example showing the three main ways to fetch data
-- [Advanced Usage](./examples/advanced/) - Custom options, error handling, and data analysis
+- [Basic Usage](./examples/basic/) - Simple example showing Yahoo Finance data fetching
+- [Advanced Usage](./examples/advanced/) - Custom options, error handling, and multiple data sources
+- [FRED Example](./examples/fred/) - Federal Reserve Economic Data usage with API key
 
 Run an example:
 ```bash
 cd examples/basic
 go run main.go
+
+# For FRED example (requires API key)
+cd examples/fred
+FRED_API_KEY=your_key_here go run main.go
 ```
 
 ## Documentation

@@ -5,9 +5,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/julianshen/gonp-datareader"
+	"github.com/julianshen/gonp-datareader/sources/fred"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
 
@@ -101,6 +103,47 @@ func main() {
 		for _, col := range data.Columns {
 			fmt.Printf("  %s: %s\n", col, data.Rows[0][col])
 		}
+	}
+
+	// Example with FRED (if API key is available)
+	fmt.Println("\n--- FRED Data Source (Economic Data) ---")
+
+	fredAPIKey := os.Getenv("FRED_API_KEY")
+	if fredAPIKey != "" {
+		fredOpts := &datareader.Options{
+			APIKey:     fredAPIKey,
+			Timeout:    60 * time.Second,
+			MaxRetries: 3,
+			RetryDelay: 2 * time.Second,
+		}
+
+		fredReader, err := datareader.DataReader("fred", fredOpts)
+		if err != nil {
+			fmt.Printf("✗ Failed to create FRED reader: %v\n", err)
+		} else {
+			fmt.Printf("✓ Created %s reader\n", fredReader.Name())
+
+			// Fetch GDP data
+			startDate := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+			endDate := time.Date(2023, 12, 31, 0, 0, 0, 0, time.UTC)
+
+			result, err := fredReader.ReadSingle(ctx, "GDP", startDate, endDate)
+			if err != nil {
+				fmt.Printf("✗ Error fetching GDP data: %v\n", err)
+			} else {
+				fredData := result.(*fred.ParsedData)
+				fmt.Printf("✓ Successfully fetched GDP data: %d observations\n", len(fredData.Dates))
+
+				if len(fredData.Dates) > 0 {
+					fmt.Printf("  Latest GDP: %s = $%s billion\n",
+						fredData.Dates[len(fredData.Dates)-1],
+						fredData.Values[len(fredData.Values)-1])
+				}
+			}
+		}
+	} else {
+		fmt.Println("⚠️  FRED_API_KEY not set - skipping FRED example")
+		fmt.Println("  Get a free API key at: https://fred.stlouisfed.org/docs/api/api_key.html")
 	}
 
 	// List all available sources
