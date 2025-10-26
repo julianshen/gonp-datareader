@@ -4,6 +4,8 @@ package fred
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -42,6 +44,16 @@ func NewFREDReaderWithAPIKey(opts *internalhttp.ClientOptions, apiKey string) *F
 	return reader
 }
 
+// SetAPIKey sets the API key for FRED requests.
+func (f *FREDReader) SetAPIKey(apiKey string) {
+	f.apiKey = apiKey
+}
+
+// GetAPIKey returns the currently configured API key.
+func (f *FREDReader) GetAPIKey() string {
+	return f.apiKey
+}
+
 // Name returns the display name of the data source.
 func (f *FREDReader) Name() string {
 	return "FRED"
@@ -75,8 +87,35 @@ func (f *FREDReader) ReadSingle(ctx context.Context, symbol string, start, end t
 		return nil, fmt.Errorf("FRED API key is required")
 	}
 
-	// TODO: Implement actual HTTP request and parsing
-	return nil, fmt.Errorf("not implemented yet")
+	// Build URL
+	url := f.BuildURL(symbol, start, end, f.apiKey)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := f.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("FRED API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse JSON response
+	data, err := ParseJSON(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple series from FRED.
@@ -95,6 +134,18 @@ func (f *FREDReader) Read(ctx context.Context, symbols []string, start, end time
 		return nil, fmt.Errorf("FRED API key is required")
 	}
 
-	// TODO: Implement fetching multiple series
-	return nil, fmt.Errorf("not implemented yet")
+	// Fetch data for each series
+	results := make(map[string]*ParsedData)
+	for _, symbol := range symbols {
+		data, err := f.ReadSingle(ctx, symbol, start, end)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
+		}
+
+		if parsedData, ok := data.(*ParsedData); ok {
+			results[symbol] = parsedData
+		}
+	}
+
+	return results, nil
 }

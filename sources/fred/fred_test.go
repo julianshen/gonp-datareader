@@ -147,6 +147,45 @@ func TestFREDReader_ReadSingle_RequiresAPIKey(t *testing.T) {
 	}
 }
 
+func TestFREDReader_SetAPIKey(t *testing.T) {
+	opts := internalhttp.DefaultClientOptions()
+	reader := fred.NewFREDReader(opts)
+
+	reader.SetAPIKey("test_key")
+
+	if reader.GetAPIKey() != "test_key" {
+		t.Errorf("Expected API key 'test_key', got '%s'", reader.GetAPIKey())
+	}
+}
+
+func TestFREDReader_Read_InvalidSymbols(t *testing.T) {
+	opts := internalhttp.DefaultClientOptions()
+	reader := fred.NewFREDReaderWithAPIKey(opts, "test_key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Expected error for empty symbols list, got nil")
+	}
+}
+
+func TestFREDReader_ReadSingle_InvalidDateRange(t *testing.T) {
+	opts := internalhttp.DefaultClientOptions()
+	reader := fred.NewFREDReaderWithAPIKey(opts, "test_key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "GDP", start, end)
+	if err == nil {
+		t.Error("Expected error for invalid date range, got nil")
+	}
+}
+
 // Helper function
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) &&
