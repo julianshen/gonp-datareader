@@ -18,92 +18,92 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ---
 
-## Phase 0: Project Setup
+## Phase 0: Project Setup ✓ COMPLETED
 
-### 0.1 Repository Initialization
-- ☐ Initialize Go module: `go mod init github.com/yourorg/gonp-datareader`
-- ☐ Create directory structure (sources/, internal/, examples/, docs/)
-- ☐ Add LICENSE file (MIT)
-- ☐ Create initial README.md with project description
-- ☐ Add .gitignore for Go projects
-- ☐ Create Makefile with test, lint, fmt targets
+### 0.1 Repository Initialization ✓
+- ☑ Initialize Go module: `go mod init github.com/yourorg/gonp-datareader`
+- ☑ Create directory structure (sources/, internal/, examples/, docs/)
+- ☑ Add LICENSE file (MIT)
+- ☑ Create initial README.md with project description
+- ☑ Add .gitignore for Go projects
+- ☑ Create Makefile with test, lint, fmt targets
 - ☐ Set up GitHub Actions or CI pipeline (optional)
 
 **Commit:** `chore: initialize project structure`
 
-### 0.2 Core Type Definitions
-- ☐ Test: Package imports without errors
-- ☐ Implement: Create datareader.go with package documentation
-- ☐ Test: Options struct has expected fields
-- ☐ Implement: Define Options struct with basic fields
-- ☐ Test: DefaultOptions returns valid configuration
-- ☐ Implement: DefaultOptions() function
+### 0.2 Core Type Definitions ✓
+- ☑ Test: Package imports without errors
+- ☑ Implement: Create datareader.go with package documentation
+- ☑ Test: Options struct has expected fields
+- ☑ Implement: Define Options struct with basic fields
+- ☑ Test: DefaultOptions returns valid configuration
+- ☑ Implement: DefaultOptions() function
 
 **Commit:** `feat: add core types and options`
 
 ---
 
-## Phase 1: Foundation (Error Handling & HTTP Client)
+## Phase 1: Foundation (Error Handling & HTTP Client) ✓ COMPLETED
 
-### 1.1 Custom Error Types
-- ☐ Test: DataReaderError implements error interface
-- ☐ Implement: DataReaderError struct with Type, Source, Message, Cause
-- ☐ Test: DataReaderError.Error() returns formatted message
-- ☐ Implement: Error() method
-- ☐ Test: DataReaderError.Unwrap() returns cause
-- ☐ Implement: Unwrap() method
-- ☐ Test: ErrorType constants are defined
-- ☐ Implement: ErrorType constants (ErrInvalidSymbol, ErrNetworkError, etc.)
-- ☐ Test: NewDataReaderError creates proper error
-- ☐ Implement: NewDataReaderError constructor function
+### 1.1 Custom Error Types ✓
+- ☑ Test: DataReaderError implements error interface
+- ☑ Implement: DataReaderError struct with Type, Source, Message, Cause
+- ☑ Test: DataReaderError.Error() returns formatted message
+- ☑ Implement: Error() method
+- ☑ Test: DataReaderError.Unwrap() returns cause
+- ☑ Implement: Unwrap() method
+- ☑ Test: ErrorType constants are defined
+- ☑ Implement: ErrorType constants (ErrInvalidSymbol, ErrNetworkError, etc.)
+- ☑ Test: NewDataReaderError creates proper error
+- ☑ Implement: NewDataReaderError constructor function
 
 **Commit:** `feat: implement custom error types`
 
-### 1.2 Input Validation Utilities
-- ☐ Test: ValidateSymbol rejects empty string
-- ☐ Implement: ValidateSymbol function returning error for empty
-- ☐ Test: ValidateSymbol rejects symbols with spaces
-- ☐ Implement: Add space validation
-- ☐ Test: ValidateSymbol rejects symbols with invalid characters
-- ☐ Implement: Add character validation
-- ☐ Test: ValidateSymbol accepts valid symbols
-- ☐ Verify: All validation tests pass
-- ☐ Test: ValidateDateRange rejects end before start
-- ☐ Implement: ValidateDateRange function
-- ☐ Test: ValidateDateRange rejects future dates (if applicable)
-- ☐ Implement: Add future date check
-- ☐ Test: ValidateDateRange accepts valid ranges
-- ☐ Verify: All date validation tests pass
+### 1.2 Input Validation Utilities ✓
+- ☑ Test: ValidateSymbol rejects empty string
+- ☑ Implement: ValidateSymbol function returning error for empty
+- ☑ Test: ValidateSymbol rejects symbols with spaces
+- ☑ Implement: Add space validation
+- ☑ Test: ValidateSymbol rejects symbols with invalid characters
+- ☑ Implement: Add character validation
+- ☑ Test: ValidateSymbol accepts valid symbols
+- ☑ Verify: All validation tests pass
+- ☑ Test: ValidateDateRange rejects end before start
+- ☑ Implement: ValidateDateRange function
+- ☑ Test: ValidateDateRange rejects future dates (if applicable)
+- ☑ Implement: Add future date check
+- ☑ Test: ValidateDateRange accepts valid ranges
+- ☑ Verify: All date validation tests pass
 
 **Commit:** `feat: add input validation utilities`
 
-### 1.3 HTTP Client Foundation
-- ☐ Test: HTTPClient interface is defined
-- ☐ Implement: HTTPClient interface in internal/http/client.go
-- ☐ Test: NewHTTPClient returns non-nil client
-- ☐ Implement: NewHTTPClient constructor
-- ☐ Test: HTTPClient sets default timeout
-- ☐ Implement: Configure default timeout (30s)
-- ☐ Test: HTTPClient sets custom User-Agent
-- ☐ Implement: Add User-Agent header
-- ☐ Test: HTTPClient enables HTTP/2
-- ☐ Implement: Configure Transport for HTTP/2
+### 1.3 HTTP Client Foundation ✓
+- ☑ Test: HTTPClient interface is defined
+- ☑ Implement: HTTPClient interface in internal/http/client.go
+- ☑ Test: NewHTTPClient returns non-nil client
+- ☑ Implement: NewHTTPClient constructor
+- ☑ Test: HTTPClient sets default timeout
+- ☑ Implement: Configure default timeout (30s)
+- ☑ Test: HTTPClient sets custom User-Agent
+- ☑ Implement: Add User-Agent header
+- ☑ Test: HTTPClient enables HTTP/2
+- ☑ Implement: Configure Transport for HTTP/2
 
 **Commit:** `feat: implement HTTP client foundation`
 
-### 1.4 HTTP Client Retry Logic
-- ☐ Test: Client retries on network error
-- ☐ Implement: Basic retry wrapper
-- ☐ Test: Client respects max retries limit
-- ☐ Implement: Add retry counter
-- ☐ Test: Client uses exponential backoff
-- ☐ Implement: Exponential backoff between retries
-- ☐ Test: Client doesn't retry on 4xx errors
-- ☐ Implement: Add status code check
-- ☐ Test: Client retries on 5xx errors
-- ☐ Implement: Add 5xx retry logic
-- ☐ Test: Client respects context cancellation
-- ☐ Implement: Check context.Done() in retry loop
+### 1.4 HTTP Client Retry Logic ✓
+- ☑ Test: Client retries on network error
+- ☑ Implement: Basic retry wrapper
+- ☑ Test: Client respects max retries limit
+- ☑ Implement: Add retry counter
+- ☑ Test: Client uses exponential backoff
+- ☑ Implement: Exponential backoff between retries
+- ☑ Test: Client doesn't retry on 4xx errors
+- ☑ Implement: Add status code check
+- ☑ Test: Client retries on 5xx errors
+- ☑ Implement: Add 5xx retry logic
+- ☑ Test: Client respects context cancellation
+- ☑ Implement: Check context.Done() in retry loop
 
 **Commit:** `feat: add HTTP client retry logic with exponential backoff`
 
@@ -111,181 +111,181 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ---
 
-## Phase 2: Base Reader Interface
+## Phase 2: Base Reader Interface ✓ COMPLETED
 
-### 2.1 Reader Interface Definition
-- ☐ Test: Reader interface is defined
-- ☐ Implement: Reader interface in datareader.go
-- ☐ Test: Reader has Read method signature
-- ☐ Verify: Read(ctx, symbols, start, end) signature correct
-- ☐ Test: Reader has ReadSingle method signature
-- ☐ Verify: ReadSingle(ctx, symbol, start, end) signature correct
-- ☐ Test: Reader has ValidateSymbol method
-- ☐ Verify: ValidateSymbol(symbol) signature correct
-- ☐ Test: Reader has Name method
-- ☐ Verify: Name() signature correct
+### 2.1 Reader Interface Definition ✓
+- ☑ Test: Reader interface is defined
+- ☑ Implement: Reader interface in datareader.go
+- ☑ Test: Reader has Read method signature
+- ☑ Verify: Read(ctx, symbols, start, end) signature correct
+- ☑ Test: Reader has ReadSingle method signature
+- ☑ Verify: ReadSingle(ctx, symbol, start, end) signature correct
+- ☑ Test: Reader has ValidateSymbol method
+- ☑ Verify: ValidateSymbol(symbol) signature correct
+- ☑ Test: Reader has Name method
+- ☑ Verify: Name() signature correct
 
 **Commit:** `feat: define Reader interface`
 
-### 2.2 Base Source Implementation
-- ☐ Test: baseSource struct exists
-- ☐ Implement: baseSource in sources/source.go
-- ☐ Test: baseSource has HTTPClient field
-- ☐ Implement: Add httpClient field
-- ☐ Test: baseSource has Options field
-- ☐ Implement: Add options field
-- ☐ Test: newBaseSource initializes fields
-- ☐ Implement: Constructor function
-- ☐ Test: baseSource.Name returns source name
-- ☐ Implement: Name() method
+### 2.2 Base Source Implementation ✓
+- ☑ Test: baseSource struct exists
+- ☑ Implement: baseSource in sources/source.go
+- ☑ Test: baseSource has HTTPClient field
+- ☑ Implement: Add httpClient field
+- ☑ Test: baseSource has Options field
+- ☑ Implement: Add options field
+- ☑ Test: newBaseSource initializes fields
+- ☑ Implement: Constructor function
+- ☑ Test: baseSource.Name returns source name
+- ☑ Implement: Name() method
 
 **Commit:** `feat: implement base source structure`
 
 ---
 
-## Phase 3: Yahoo Finance Reader (MVP)
+## Phase 3: Yahoo Finance Reader (MVP) ✓ COMPLETED
 
-### 3.1 Yahoo Reader Structure
-- ☐ Test: YahooReader struct exists
-- ☐ Implement: YahooReader in sources/yahoo/yahoo.go
-- ☐ Test: YahooReader embeds baseSource
-- ☐ Implement: Embed baseSource
-- ☐ Test: NewYahooReader returns non-nil reader
-- ☐ Implement: NewYahooReader constructor
-- ☐ Test: YahooReader implements Reader interface
-- ☐ Verify: Implements all Reader methods
+### 3.1 Yahoo Reader Structure ✓
+- ☑ Test: YahooReader struct exists
+- ☑ Implement: YahooReader in sources/yahoo/yahoo.go
+- ☑ Test: YahooReader embeds baseSource
+- ☑ Implement: Embed baseSource
+- ☑ Test: NewYahooReader returns non-nil reader
+- ☑ Implement: NewYahooReader constructor
+- ☑ Test: YahooReader implements Reader interface
+- ☑ Verify: Implements all Reader methods
 
 **Commit:** `feat: create Yahoo Finance reader structure`
 
-### 3.2 Yahoo URL Building
-- ☐ Test: buildYahooURL creates valid URL for symbol
-- ☐ Implement: buildYahooURL function
-- ☐ Test: buildYahooURL includes start timestamp
-- ☐ Implement: Add period1 parameter
-- ☐ Test: buildYahooURL includes end timestamp
-- ☐ Implement: Add period2 parameter
-- ☐ Test: buildYahooURL includes interval parameter
-- ☐ Implement: Add interval=1d parameter
-- ☐ Test: buildYahooURL handles URL encoding
-- ☐ Implement: URL encode symbol if needed
+### 3.2 Yahoo URL Building ✓
+- ☑ Test: buildYahooURL creates valid URL for symbol
+- ☑ Implement: buildYahooURL function
+- ☑ Test: buildYahooURL includes start timestamp
+- ☑ Implement: Add period1 parameter
+- ☑ Test: buildYahooURL includes end timestamp
+- ☑ Implement: Add period2 parameter
+- ☑ Test: buildYahooURL includes interval parameter
+- ☑ Implement: Add interval=1d parameter
+- ☑ Test: buildYahooURL handles URL encoding
+- ☑ Implement: URL encode symbol if needed
 
 **Commit:** `feat: implement Yahoo Finance URL builder`
 
-### 3.3 Yahoo HTTP Request
-- ☐ Test: fetchYahooData makes HTTP request
-- ☐ Implement: fetchYahooData function with httpClient.Get
-- ☐ Test: fetchYahooData returns data for valid symbol
-- ☐ Implement: Read response body
-- ☐ Test: fetchYahooData handles 404 error
-- ☐ Implement: Check status code, return ErrDataNotFound
-- ☐ Test: fetchYahooData handles network errors
-- ☐ Implement: Wrap errors with context
-- ☐ Test: fetchYahooData respects context cancellation
-- ☐ Implement: Pass context to HTTP request
+### 3.3 Yahoo HTTP Request ✓
+- ☑ Test: fetchYahooData makes HTTP request
+- ☑ Implement: fetchYahooData function with httpClient.Get
+- ☑ Test: fetchYahooData returns data for valid symbol
+- ☑ Implement: Read response body
+- ☑ Test: fetchYahooData handles 404 error
+- ☑ Implement: Check status code, return ErrDataNotFound
+- ☑ Test: fetchYahooData handles network errors
+- ☑ Implement: Wrap errors with context
+- ☑ Test: fetchYahooData respects context cancellation
+- ☑ Implement: Pass context to HTTP request
 
 **Commit:** `feat: implement Yahoo Finance HTTP fetching`
 
-### 3.4 Yahoo Response Parsing (CSV Format)
-- ☐ Test: parseYahooCSV parses valid CSV response
-- ☐ Implement: parseYahooCSV function
-- ☐ Test: parseYahooCSV extracts date column
-- ☐ Implement: Parse Date column
-- ☐ Test: parseYahooCSV extracts OHLCV columns
-- ☐ Implement: Parse Open, High, Low, Close, Volume
-- ☐ Test: parseYahooCSV extracts Adj Close column
-- ☐ Implement: Parse Adj Close
-- ☐ Test: parseYahooCSV handles missing values
-- ☐ Implement: Handle null/empty values
-- ☐ Test: parseYahooCSV returns error for invalid CSV
-- ☐ Implement: Add CSV validation
+### 3.4 Yahoo Response Parsing (CSV Format) ✓
+- ☑ Test: parseYahooCSV parses valid CSV response
+- ☑ Implement: parseYahooCSV function
+- ☑ Test: parseYahooCSV extracts date column
+- ☑ Implement: Parse Date column
+- ☑ Test: parseYahooCSV extracts OHLCV columns
+- ☑ Implement: Parse Open, High, Low, Close, Volume
+- ☑ Test: parseYahooCSV extracts Adj Close column
+- ☑ Implement: Parse Adj Close
+- ☑ Test: parseYahooCSV handles missing values
+- ☑ Implement: Handle null/empty values
+- ☑ Test: parseYahooCSV returns error for invalid CSV
+- ☑ Implement: Add CSV validation
 
 **Commit:** `feat: implement Yahoo Finance CSV parser`
 
-### 3.5 Yahoo DataFrame Conversion
-- ☐ Test: yahooToDataFrame creates DataFrame from parsed data
-- ☐ Implement: yahooToDataFrame function
-- ☐ Test: yahooToDataFrame sets date as index
-- ☐ Implement: Set DataFrame index to dates
-- ☐ Test: yahooToDataFrame creates columns for OHLCV
-- ☐ Implement: Create DataFrame columns
-- ☐ Test: yahooToDataFrame handles empty data
-- ☐ Implement: Return error for empty result
-- ☐ Test: yahooToDataFrame sorts by date ascending
-- ☐ Implement: Sort DataFrame by index
+### 3.5 Yahoo DataFrame Conversion ✓
+- ☑ Test: yahooToDataFrame creates DataFrame from parsed data
+- ☑ Implement: yahooToDataFrame function
+- ☑ Test: yahooToDataFrame sets date as index
+- ☑ Implement: Set DataFrame index to dates
+- ☑ Test: yahooToDataFrame creates columns for OHLCV
+- ☑ Implement: Create DataFrame columns
+- ☑ Test: yahooToDataFrame handles empty data
+- ☑ Implement: Return error for empty result
+- ☑ Test: yahooToDataFrame sorts by date ascending
+- ☑ Implement: Sort DataFrame by index
 
 **Commit:** `feat: convert Yahoo data to gonp DataFrame`
 
-### 3.6 Yahoo Reader Integration
-- ☐ Test: YahooReader.ReadSingle fetches AAPL data
-- ☐ Implement: Connect all pieces in ReadSingle
-- ☐ Test: YahooReader.ReadSingle validates symbol first
-- ☐ Implement: Add symbol validation
-- ☐ Test: YahooReader.ReadSingle validates date range
-- ☐ Implement: Add date validation
-- ☐ Test: YahooReader.ReadSingle returns proper DataFrame
-- ☐ Verify: Integration works end-to-end
-- ☐ Test: YahooReader.Read handles multiple symbols
-- ☐ Implement: Read method calling ReadSingle for each symbol
-- ☐ Test: YahooReader.ValidateSymbol checks format
-- ☐ Implement: ValidateSymbol method
+### 3.6 Yahoo Reader Integration ✓
+- ☑ Test: YahooReader.ReadSingle fetches AAPL data
+- ☑ Implement: Connect all pieces in ReadSingle
+- ☑ Test: YahooReader.ReadSingle validates symbol first
+- ☑ Implement: Add symbol validation
+- ☑ Test: YahooReader.ReadSingle validates date range
+- ☑ Implement: Add date validation
+- ☑ Test: YahooReader.ReadSingle returns proper DataFrame
+- ☑ Verify: Integration works end-to-end
+- ☑ Test: YahooReader.Read handles multiple symbols
+- ☑ Implement: Read method calling ReadSingle for each symbol
+- ☑ Test: YahooReader.ValidateSymbol checks format
+- ☑ Implement: ValidateSymbol method
 
 **Commit:** `feat: complete Yahoo Finance reader integration`
 
 **Refactor checkpoint:** Review Yahoo reader, extract common parsing logic
 
-### 3.7 Yahoo Reader Error Handling
-- ☐ Test: YahooReader returns ErrInvalidSymbol for empty symbol
-- ☐ Implement: Check and return proper error
-- ☐ Test: YahooReader returns ErrInvalidDateRange for invalid dates
-- ☐ Implement: Date validation with proper error
-- ☐ Test: YahooReader returns ErrDataNotFound for invalid symbol
-- ☐ Implement: Handle 404 responses
-- ☐ Test: YahooReader returns ErrNetworkError for connection issues
-- ☐ Implement: Wrap network errors
-- ☐ Test: YahooReader includes symbol in error messages
-- ☐ Implement: Add context to all errors
+### 3.7 Yahoo Reader Error Handling ✓
+- ☑ Test: YahooReader returns ErrInvalidSymbol for empty symbol
+- ☑ Implement: Check and return proper error
+- ☑ Test: YahooReader returns ErrInvalidDateRange for invalid dates
+- ☑ Implement: Date validation with proper error
+- ☑ Test: YahooReader returns ErrDataNotFound for invalid symbol
+- ☑ Implement: Handle 404 responses
+- ☑ Test: YahooReader returns ErrNetworkError for connection issues
+- ☑ Implement: Wrap network errors
+- ☑ Test: YahooReader includes symbol in error messages
+- ☑ Implement: Add context to all errors
 
 **Commit:** `feat: add comprehensive error handling to Yahoo reader`
 
 ---
 
-## Phase 4: DataReader Factory
+## Phase 4: DataReader Factory ✓ COMPLETED
 
-### 4.1 Source Registry
-- ☐ Test: registry map stores reader constructors
-- ☐ Implement: sourceRegistry map[string]ReaderConstructor
-- ☐ Test: RegisterSource adds constructor to registry
-- ☐ Implement: RegisterSource function
-- ☐ Test: RegisterSource panics on duplicate
-- ☐ Implement: Duplicate check
-- ☐ Test: Yahoo reader is registered at init
-- ☐ Implement: init() function registering yahoo
+### 4.1 Source Registry ✓
+- ☑ Test: registry map stores reader constructors
+- ☑ Implement: sourceRegistry map[string]ReaderConstructor
+- ☑ Test: RegisterSource adds constructor to registry
+- ☑ Implement: RegisterSource function
+- ☑ Test: RegisterSource panics on duplicate
+- ☑ Implement: Duplicate check
+- ☑ Test: Yahoo reader is registered at init
+- ☑ Implement: init() function registering yahoo
 
 **Commit:** `feat: implement source registry`
 
-### 4.2 DataReader Factory Function
-- ☐ Test: DataReader returns error for unknown source
-- ☐ Implement: DataReader function checking registry
-- ☐ Test: DataReader creates Yahoo reader for "yahoo"
-- ☐ Implement: Look up and call constructor
-- ☐ Test: DataReader passes options to reader
-- ☐ Implement: Pass options through
-- ☐ Test: DataReader uses default options if nil
-- ☐ Implement: Call DefaultOptions() when needed
-- ☐ Test: DataReader is case-insensitive
-- ☐ Implement: strings.ToLower(source)
+### 4.2 DataReader Factory Function ✓
+- ☑ Test: DataReader returns error for unknown source
+- ☑ Implement: DataReader function checking registry
+- ☑ Test: DataReader creates Yahoo reader for "yahoo"
+- ☑ Implement: Look up and call constructor
+- ☑ Test: DataReader passes options to reader
+- ☑ Implement: Pass options through
+- ☑ Test: DataReader uses default options if nil
+- ☑ Implement: Call DefaultOptions() when needed
+- ☑ Test: DataReader is case-insensitive
+- ☑ Implement: strings.ToLower(source)
 
 **Commit:** `feat: implement DataReader factory function`
 
-### 4.3 Convenience Read Function
-- ☐ Test: Read creates reader and fetches data
-- ☐ Implement: Read function combining DataReader + ReadSingle
-- ☐ Test: Read handles single symbol string
-- ☐ Implement: Single symbol path
-- ☐ Test: Read returns proper DataFrame
-- ☐ Verify: End-to-end test passes
-- ☐ Test: Read with nil options uses defaults
-- ☐ Implement: Options handling
+### 4.3 Convenience Read Function ✓
+- ☑ Test: Read creates reader and fetches data
+- ☑ Implement: Read function combining DataReader + ReadSingle
+- ☑ Test: Read handles single symbol string
+- ☑ Implement: Single symbol path
+- ☑ Test: Read returns proper DataFrame
+- ☑ Verify: End-to-end test passes
+- ☑ Test: Read with nil options uses defaults
+- ☑ Implement: Options handling
 
 **Commit:** `feat: add convenience Read function`
 
