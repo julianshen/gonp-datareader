@@ -3,6 +3,7 @@ package iex
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -23,6 +24,40 @@ func NewIEXReader(opts *internalhttp.ClientOptions, apiKey string) *IEXReader {
 		BaseSource: sources.NewBaseSource("iex"),
 		client:     internalhttp.NewRetryableClient(opts),
 		apiKey:     apiKey,
+	}
+}
+
+// BuildURL constructs the IEX Cloud API URL for fetching historical chart data.
+// The IEX Cloud format is:
+// https://cloud.iexapis.com/stable/stock/{symbol}/chart/{range}?token={token}
+func BuildURL(symbol, dateRange, apiKey string) string {
+	return fmt.Sprintf(
+		"https://cloud.iexapis.com/stable/stock/%s/chart/%s?token=%s",
+		symbol,
+		dateRange,
+		apiKey,
+	)
+}
+
+// CalculateDateRange converts start/end dates to IEX Cloud date range format.
+// IEX Cloud uses ranges like: 1m, 3m, 6m, 1y, 2y, 5y
+func CalculateDateRange(start, end time.Time) string {
+	duration := end.Sub(start)
+	days := int(duration.Hours() / 24)
+
+	switch {
+	case days < 45: // Less than 1.5 months
+		return "1m"
+	case days < 135: // Less than 4.5 months
+		return "3m"
+	case days < 270: // Less than 9 months
+		return "6m"
+	case days < 548: // Less than 1.5 years
+		return "1y"
+	case days < 1095: // Less than 3 years
+		return "2y"
+	default:
+		return "5y" // Max range
 	}
 }
 
