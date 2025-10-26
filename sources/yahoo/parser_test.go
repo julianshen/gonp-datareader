@@ -155,3 +155,63 @@ func TestParsedData_GetColumn_NonExistent(t *testing.T) {
 		t.Errorf("Expected empty/nil for non-existent column, got %v", values)
 	}
 }
+
+// Benchmark tests
+
+func BenchmarkParseCSV(b *testing.B) {
+	csvData := `Date,Open,High,Low,Close,Adj Close,Volume
+2020-01-02,296.239990,300.600006,295.190002,300.350006,297.450287,33911900
+2020-01-03,297.149994,300.579987,296.500000,297.429993,294.558075,36607600
+2020-01-06,293.790009,299.959991,292.750000,299.799988,296.906128,29596800
+2020-01-07,302.799988,305.130005,300.690002,304.940002,302.001221,33125300
+2020-01-08,303.190002,303.239990,299.429993,300.790009,297.888916,28239600`
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := yahoo.ParseCSV(strings.NewReader(csvData))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParseCSV_LargeDataset(b *testing.B) {
+	// Generate a larger CSV dataset (100 rows)
+	var sb strings.Builder
+	sb.WriteString("Date,Open,High,Low,Close,Adj Close,Volume\n")
+	for i := 0; i < 100; i++ {
+		sb.WriteString("2020-01-02,296.239990,300.600006,295.190002,300.350006,297.450287,33911900\n")
+	}
+	csvData := sb.String()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := yahoo.ParseCSV(strings.NewReader(csvData))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkGetColumn(b *testing.B) {
+	csvData := `Date,Open,High,Low,Close,Adj Close,Volume
+2020-01-02,296.239990,300.600006,295.190002,300.350006,297.450287,33911900
+2020-01-03,297.149994,300.579987,296.500000,297.429993,294.558075,36607600
+2020-01-06,293.790009,299.959991,292.750000,299.799988,296.906128,29596800`
+
+	result, err := yahoo.ParseCSV(strings.NewReader(csvData))
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = result.GetColumn("Close")
+	}
+}

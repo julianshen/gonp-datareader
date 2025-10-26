@@ -201,3 +201,61 @@ func TestParsedData_GetColumn(t *testing.T) {
 		t.Errorf("Expected nil for unknown column, got %v", unknown)
 	}
 }
+
+// Benchmark tests
+
+func BenchmarkParseJSON(b *testing.B) {
+	jsonData := `{
+		"realtime_start": "2024-01-01",
+		"realtime_end": "2024-01-01",
+		"observation_start": "2024-01-01",
+		"observation_end": "2024-12-31",
+		"units": "lin",
+		"output_type": 1,
+		"file_type": "json",
+		"order_by": "observation_date",
+		"sort_order": "asc",
+		"count": 3,
+		"offset": 0,
+		"limit": 100000,
+		"observations": [
+			{"realtime_start": "2024-01-01", "realtime_end": "2024-01-01", "date": "2024-01-01", "value": "100.5"},
+			{"realtime_start": "2024-01-01", "realtime_end": "2024-01-01", "date": "2024-01-02", "value": "101.2"},
+			{"realtime_start": "2024-01-01", "realtime_end": "2024-01-01", "date": "2024-01-03", "value": "102.8"}
+		]
+	}`
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := fred.ParseJSON(strings.NewReader(jsonData))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkParseJSON_LargeDataset(b *testing.B) {
+	// Generate JSON with 100 observations
+	observations := make([]string, 100)
+	for i := 0; i < 100; i++ {
+		observations[i] = `{"realtime_start": "2024-01-01", "realtime_end": "2024-01-01", "date": "2024-01-01", "value": "100.5"}`
+	}
+
+	jsonData := `{
+		"realtime_start": "2024-01-01",
+		"realtime_end": "2024-01-01",
+		"observations": [` + strings.Join(observations, ",") + `]
+	}`
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, err := fred.ParseJSON(strings.NewReader(jsonData))
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}

@@ -1,6 +1,7 @@
 package cache_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -222,5 +223,76 @@ func TestNilCache(t *testing.T) {
 	err = c.Delete("key")
 	if err == nil {
 		t.Error("Nil cache Delete should return error")
+	}
+}
+
+// Benchmark tests
+
+func BenchmarkFileCache_Set(b *testing.B) {
+	tempDir := b.TempDir()
+	cache := cache.NewFileCache(tempDir)
+
+	testData := []byte("test data for benchmarking cache set operation")
+	ttl := 1 * time.Hour
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		key := fmt.Sprintf("benchmark-key-%d", i)
+		err := cache.Set(key, testData, ttl)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFileCache_Get(b *testing.B) {
+	tempDir := b.TempDir()
+	cache := cache.NewFileCache(tempDir)
+
+	// Pre-populate cache
+	testData := []byte("test data for benchmarking cache get operation")
+	ttl := 1 * time.Hour
+	key := "benchmark-key"
+	
+	err := cache.Set(key, testData, ttl)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_, found := cache.Get(key)
+		if !found {
+			b.Fatal("expected to find cached value")
+		}
+	}
+}
+
+func BenchmarkFileCache_SetAndGet(b *testing.B) {
+	tempDir := b.TempDir()
+	cache := cache.NewFileCache(tempDir)
+
+	testData := []byte("test data for benchmarking cache set and get operations")
+	ttl := 1 * time.Hour
+
+	b.ReportAllocs()
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		key := fmt.Sprintf("benchmark-key-%d", i)
+		
+		err := cache.Set(key, testData, ttl)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		_, found := cache.Get(key)
+		if !found {
+			b.Fatal("expected to find cached value")
+		}
 	}
 }
