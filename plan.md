@@ -653,15 +653,25 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 - sources/yahoo: 88.2% ✅
 - Core infrastructure average: >85% ✅
 
-### 11.4 Edge Cases and Error Paths
-- ☐ Test: Network timeout scenarios
-- ☐ Test: Malformed response handling
-- ☐ Test: Partial data scenarios
-- ☐ Test: Large date range handling
-- ☐ Test: Concurrent requests
-- ☐ Test: Context cancellation at various points
+### 11.4 Edge Cases and Error Paths ✓
+- ☑ Test: Network timeout scenarios
+- ☑ Test: Malformed response handling
+- ☑ Test: Partial data scenarios
+- ☑ Test: Large date range handling
+- ☑ Test: Concurrent requests
+- ☑ Test: Context cancellation at various points
 
 **Commit:** `test: add edge case and error path tests`
+
+**Test Coverage:**
+- Network timeouts with short timeout values ✅
+- Context cancellation before/during/after requests ✅
+- Malformed responses (invalid CSV, empty data, corrupted rows) ✅
+- Partial data scenarios (null values, inconsistent columns) ✅
+- Large date ranges with 1000+ data points ✅
+- Concurrent requests (10+ simultaneous requests) ✅
+- HTTP error responses (404, 500, 503, 429) ✅
+- Rapid context cancellations ✅
 
 ---
 
