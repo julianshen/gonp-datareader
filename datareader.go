@@ -9,6 +9,7 @@ import (
 	"github.com/julianshen/gonp-datareader/sources"
 	"github.com/julianshen/gonp-datareader/sources/alphavantage"
 	"github.com/julianshen/gonp-datareader/sources/fred"
+	"github.com/julianshen/gonp-datareader/sources/iex"
 	"github.com/julianshen/gonp-datareader/sources/stooq"
 	"github.com/julianshen/gonp-datareader/sources/worldbank"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
@@ -56,6 +57,8 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return alphavantage.NewAlphaVantageReader(clientOpts, apiKey), nil
 	case "stooq":
 		return stooq.NewStooqReader(clientOpts), nil
+	case "iex":
+		return iex.NewIEXReader(clientOpts, apiKey), nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -79,5 +82,6 @@ func ListSources() []string {
 		"worldbank",
 		"alphavantage",
 		"stooq",
+		"iex",
 	}
 }

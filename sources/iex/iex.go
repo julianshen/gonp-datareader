@@ -4,6 +4,8 @@ package iex
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -63,14 +65,63 @@ func CalculateDateRange(start, end time.Time) string {
 
 // ReadSingle fetches data for a single stock symbol.
 func (i *IEXReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	if err := i.ValidateSymbol(symbol); err != nil {
+		return nil, err
+	}
+
+	if i.apiKey == "" {
+		return nil, fmt.Errorf("API key is required for IEX Cloud")
+	}
+
+	// Calculate date range in IEX Cloud format
+	dateRange := CalculateDateRange(start, end)
+
+	// Build request URL
+	url := BuildURL(symbol, dateRange, i.apiKey)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := i.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch IEX Cloud data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("IEX Cloud returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse response
+	data, err := ParseResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse IEX Cloud response: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple stock symbols.
 func (i *IEXReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	if len(symbols) == 0 {
+		return nil, fmt.Errorf("no symbols provided")
+	}
+
+	// For now, fetch first symbol only
+	// TODO: Support multiple symbols
+	return i.ReadSingle(ctx, symbols[0], start, end)
 }
 
 // ValidateSymbol checks if a symbol is valid for IEX Cloud.
