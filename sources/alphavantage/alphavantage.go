@@ -4,6 +4,8 @@ package alphavantage
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -40,8 +42,50 @@ func BuildURL(symbol, apiKey string) string {
 
 // ReadSingle fetches data for a single stock symbol.
 func (a *AlphaVantageReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	// Validate symbol
+	if err := a.ValidateSymbol(symbol); err != nil {
+		return nil, err
+	}
+
+	// Check API key
+	if a.apiKey == "" {
+		return nil, fmt.Errorf("API key is required for Alpha Vantage")
+	}
+
+	// Build URL
+	url := BuildURL(symbol, a.apiKey)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse response
+	data, err := ParseResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple stock symbols.

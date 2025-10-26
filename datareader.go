@@ -7,6 +7,7 @@ import (
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources"
+	"github.com/julianshen/gonp-datareader/sources/alphavantage"
 	"github.com/julianshen/gonp-datareader/sources/fred"
 	"github.com/julianshen/gonp-datareader/sources/worldbank"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
@@ -50,6 +51,8 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return fred.NewFREDReader(clientOpts), nil
 	case "worldbank":
 		return worldbank.NewWorldBankReader(clientOpts), nil
+	case "alphavantage":
+		return alphavantage.NewAlphaVantageReader(clientOpts, apiKey), nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -71,5 +74,6 @@ func ListSources() []string {
 		"yahoo",
 		"fred",
 		"worldbank",
+		"alphavantage",
 	}
 }
