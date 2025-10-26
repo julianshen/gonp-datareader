@@ -10,6 +10,7 @@ import (
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/internal/utils"
 	"github.com/julianshen/gonp-datareader/sources"
 )
 
@@ -98,10 +99,77 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 	return data, nil
 }
 
-// Read fetches data for multiple indicators and countries.
+// Read fetches data for multiple indicators and countries from World Bank.
+// Symbols are fetched in parallel for better performance.
 func (w *WorldBankReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	// Validate inputs
+	if err := utils.ValidateSymbols(symbols); err != nil {
+		return nil, fmt.Errorf("invalid symbols: %w", err)
+	}
+
+	if err := utils.ValidateDateRange(start, end); err != nil {
+		return nil, fmt.Errorf("invalid date range: %w", err)
+	}
+
+	// Use parallel fetching for multiple symbols
+	return w.readParallel(ctx, symbols, start, end)
+}
+
+// readParallel fetches multiple indicators in parallel using a worker pool.
+func (w *WorldBankReader) readParallel(ctx context.Context, symbols []string, start, end time.Time) (map[string]*ParsedData, error) {
+	type result struct {
+		symbol string
+		data   *ParsedData
+		err    error
+	}
+
+	// Create channels for work distribution and results
+	results := make(chan result, len(symbols))
+
+	// Create worker pool - limit concurrency to avoid overwhelming the server
+	maxWorkers := 10
+	if len(symbols) < maxWorkers {
+		maxWorkers = len(symbols)
+	}
+
+	// Use a semaphore pattern to limit concurrent workers
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Launch goroutines for each symbol
+	for _, symbol := range symbols {
+		// Capture symbol in loop variable
+		sym := symbol
+
+		go func() {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Fetch data
+			data, err := w.ReadSingle(ctx, sym, start, end)
+
+			// Send result
+			res := result{symbol: sym, err: err}
+			if err == nil {
+				if parsedData, ok := data.(*ParsedData); ok {
+					res.data = parsedData
+				}
+			}
+			results <- res
+		}()
+	}
+
+	// Collect results
+	dataMap := make(map[string]*ParsedData, len(symbols))
+	for i := 0; i < len(symbols); i++ {
+		res := <-results
+		if res.err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", res.symbol, res.err)
+		}
+		dataMap[res.symbol] = res.data
+	}
+
+	return dataMap, nil
 }
 
 // ValidateSymbol checks if a symbol is valid for World Bank.

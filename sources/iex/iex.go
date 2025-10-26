@@ -9,6 +9,7 @@ import (
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/internal/utils"
 	"github.com/julianshen/gonp-datareader/sources"
 )
 
@@ -113,15 +114,77 @@ func (i *IEXReader) ReadSingle(ctx context.Context, symbol string, start, end ti
 	return data, nil
 }
 
-// Read fetches data for multiple stock symbols.
+// Read fetches data for multiple stock symbols from IEX Cloud.
+// Symbols are fetched in parallel for better performance.
 func (i *IEXReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
-	if len(symbols) == 0 {
-		return nil, fmt.Errorf("no symbols provided")
+	// Validate inputs
+	if err := utils.ValidateSymbols(symbols); err != nil {
+		return nil, fmt.Errorf("invalid symbols: %w", err)
 	}
 
-	// For now, fetch first symbol only
-	// TODO: Support multiple symbols
-	return i.ReadSingle(ctx, symbols[0], start, end)
+	if err := utils.ValidateDateRange(start, end); err != nil {
+		return nil, fmt.Errorf("invalid date range: %w", err)
+	}
+
+	// Use parallel fetching for multiple symbols
+	return i.readParallel(ctx, symbols, start, end)
+}
+
+// readParallel fetches multiple symbols in parallel using a worker pool.
+func (i *IEXReader) readParallel(ctx context.Context, symbols []string, start, end time.Time) (map[string]*ParsedData, error) {
+	type result struct {
+		symbol string
+		data   *ParsedData
+		err    error
+	}
+
+	// Create channels for work distribution and results
+	results := make(chan result, len(symbols))
+
+	// Create worker pool - limit concurrency to avoid overwhelming the server
+	maxWorkers := 10
+	if len(symbols) < maxWorkers {
+		maxWorkers = len(symbols)
+	}
+
+	// Use a semaphore pattern to limit concurrent workers
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Launch goroutines for each symbol
+	for _, symbol := range symbols {
+		// Capture symbol in loop variable
+		sym := symbol
+
+		go func() {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Fetch data
+			data, err := i.ReadSingle(ctx, sym, start, end)
+
+			// Send result
+			res := result{symbol: sym, err: err}
+			if err == nil {
+				if parsedData, ok := data.(*ParsedData); ok {
+					res.data = parsedData
+				}
+			}
+			results <- res
+		}()
+	}
+
+	// Collect results
+	dataMap := make(map[string]*ParsedData, len(symbols))
+	for i := 0; i < len(symbols); i++ {
+		res := <-results
+		if res.err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", res.symbol, res.err)
+		}
+		dataMap[res.symbol] = res.data
+	}
+
+	return dataMap, nil
 }
 
 // ValidateSymbol checks if a symbol is valid for IEX Cloud.
