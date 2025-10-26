@@ -25,6 +25,13 @@ func TestDataReader(t *testing.T) {
 			wantSource: "yahoo",
 		},
 		{
+			name:       "fred source",
+			source:     "fred",
+			wantErr:    false,
+			wantName:   "FRED",
+			wantSource: "fred",
+		},
+		{
 			name:    "unknown source",
 			source:  "unknown",
 			wantErr: true,
@@ -130,21 +137,26 @@ func TestRead_InvalidDateRange(t *testing.T) {
 func TestListSources(t *testing.T) {
 	sources := datareader.ListSources()
 
-	if len(sources) == 0 {
-		t.Error("ListSources() should return at least one source")
+	if len(sources) < 2 {
+		t.Errorf("ListSources() should return at least 2 sources, got %d", len(sources))
 	}
 
-	// Yahoo should be available
-	hasYahoo := false
+	// Check for expected sources
+	expectedSources := map[string]bool{
+		"yahoo": false,
+		"fred":  false,
+	}
+
 	for _, source := range sources {
-		if source == "yahoo" {
-			hasYahoo = true
-			break
+		if _, ok := expectedSources[source]; ok {
+			expectedSources[source] = true
 		}
 	}
 
-	if !hasYahoo {
-		t.Error("ListSources() should include 'yahoo'")
+	for source, found := range expectedSources {
+		if !found {
+			t.Errorf("ListSources() should include '%s'", source)
+		}
 	}
 }
 

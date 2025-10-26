@@ -7,6 +7,7 @@ import (
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources"
+	"github.com/julianshen/gonp-datareader/sources/fred"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
 
@@ -16,7 +17,7 @@ var (
 )
 
 // DataReader creates a new reader for the specified source.
-// Supported sources: "yahoo"
+// Supported sources: "yahoo", "fred"
 func DataReader(source string, opts *Options) (sources.Reader, error) {
 	if source == "" {
 		return nil, fmt.Errorf("%w: source cannot be empty", ErrUnknownSource)
@@ -24,6 +25,7 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 
 	// Convert Options to ClientOptions
 	var clientOpts *internalhttp.ClientOptions
+	var apiKey string
 	if opts != nil {
 		clientOpts = &internalhttp.ClientOptions{
 			Timeout:    opts.Timeout,
@@ -31,11 +33,17 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 			MaxRetries: opts.MaxRetries,
 			RetryDelay: opts.RetryDelay,
 		}
+		apiKey = opts.APIKey
 	}
 
 	switch source {
 	case "yahoo":
 		return yahoo.NewYahooReader(clientOpts), nil
+	case "fred":
+		if apiKey != "" {
+			return fred.NewFREDReaderWithAPIKey(clientOpts, apiKey), nil
+		}
+		return fred.NewFREDReader(clientOpts), nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -55,5 +63,6 @@ func Read(ctx context.Context, symbol string, source string, start, end time.Tim
 func ListSources() []string {
 	return []string{
 		"yahoo",
+		"fred",
 	}
 }
