@@ -1,0 +1,77 @@
+run:
+  timeout: 5m
+  tests: true
+  skip-dirs:
+    - .cache
+    - vendor
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Reports suspicious constructs
+    - ineffassign   # Detects ineffectual assignments
+    - staticcheck   # Advanced Go linter
+    - typecheck     # Type-check Go code
+    - unused        # Check for unused code
+    - gofmt         # Check whether code was gofmt-ed
+    - goimports     # Check import statements are formatted
+    - misspell      # Finds commonly misspelled English words
+    - revive        # Fast, configurable, extensible, flexible, and beautiful linter
+    - gosec         # Security-focused linter
+    - bodyclose     # Check whether HTTP response body is closed
+    - noctx         # Finds sending http request without context.Context
+    - unparam       # Reports unused function parameters
+
+  disable:
+    - exhaustruct   # Too strict for this project
+    - nlreturn      # Too opinionated about newlines
+    - wsl           # Too strict about whitespace
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow  # Too noisy for now
+
+  revive:
+    rules:
+      - name: exported
+        disabled: false
+      - name: package-comments
+        disabled: false
+      - name: var-naming
+        disabled: false
+
+  gosec:
+    excludes:
+      - G404  # Use of weak random number generator - acceptable for non-crypto use
+
+  staticcheck:
+    checks: ["all"]
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gosec
+        - unparam
+        - errcheck
+
+    # Exclude TODO comments from triggering errors
+    - linters:
+        - godox
+      text: "TODO"
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
