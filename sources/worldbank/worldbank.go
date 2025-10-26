@@ -3,6 +3,7 @@ package worldbank
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -21,6 +22,22 @@ func NewWorldBankReader(opts *internalhttp.ClientOptions) *WorldBankReader {
 		BaseSource: sources.NewBaseSource("worldbank"),
 		client:     internalhttp.NewRetryableClient(opts),
 	}
+}
+
+// BuildURL constructs the World Bank API URL for fetching indicator data.
+// The World Bank API format is:
+// https://api.worldbank.org/v2/country/{countries}/indicator/{indicator}?date={start}:{end}&format=json
+func BuildURL(country, indicator string, start, end time.Time) string {
+	startYear := start.Year()
+	endYear := end.Year()
+
+	return fmt.Sprintf(
+		"https://api.worldbank.org/v2/country/%s/indicator/%s?date=%d:%d&format=json&per_page=1000",
+		country,
+		indicator,
+		startYear,
+		endYear,
+	)
 }
 
 // ReadSingle fetches data for a single indicator and country.
