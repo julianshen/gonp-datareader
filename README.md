@@ -4,6 +4,8 @@ Remote data access for financial and economic data sources in Go, designed to wo
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/julianshen/gonp-datareader.svg)](https://pkg.go.dev/github.com/julianshen/gonp-datareader)
 [![Go Report Card](https://goreportcard.com/badge/github.com/julianshen/gonp-datareader)](https://goreportcard.com/report/github.com/julianshen/gonp-datareader)
+[![GitHub Release](https://img.shields.io/github/v/release/julianshen/gonp-datareader)](https://github.com/julianshen/gonp-datareader/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Overview
 
@@ -242,13 +244,21 @@ This project follows Test-Driven Development (TDD) methodology. All contribution
 
 ## Roadmap
 
-Future enhancements:
-- Additional data sources (Tiingo, OECD, Eurostat)
-- Improved performance optimizations
-- Enhanced documentation
-- More comprehensive examples
+**Version 0.1.0 Status:** ✅ **All core features complete!**
 
-See [plan.md](./plan.md) for the detailed implementation roadmap.
+Implemented features:
+- ✅ 9 data sources (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
+- ✅ Performance optimizations (10% parser speedup, 140x faster buffer pooling, 4.5x parallel fetching)
+- ✅ Comprehensive documentation and examples
+- ✅ Test coverage >70%
+
+Future enhancements (community-driven):
+- Additional data sources based on user requests
+- Enhanced visualization integrations
+- More specialized examples and tutorials
+- Performance improvements for large datasets
+
+See [plan.md](./plan.md) for the detailed implementation history and [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 ## License
 
