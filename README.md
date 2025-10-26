@@ -34,21 +34,34 @@ import (
     "fmt"
     "time"
 
-    dr "github.com/julianshen/gonp-datareader"
+    "github.com/julianshen/gonp-datareader"
+    "github.com/julianshen/gonp-datareader/sources/yahoo"
 )
 
 func main() {
     ctx := context.Background()
-    start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+    start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
     end := time.Date(2023, 12, 31, 0, 0, 0, 0, time.UTC)
 
-    // Fetch stock data from Yahoo Finance
-    df, err := dr.Read(ctx, "AAPL", "yahoo", start, end, nil)
+    // Method 1: Use convenience function
+    data, err := datareader.Read(ctx, "AAPL", "yahoo", start, end, nil)
     if err != nil {
         panic(err)
     }
 
-    fmt.Println(df.Head())
+    parsedData := data.(*yahoo.ParsedData)
+    fmt.Printf("Fetched %d days of data\n", len(parsedData.Rows))
+
+    // Method 2: Use factory for more control
+    reader, _ := datareader.DataReader("yahoo", nil)
+    results, _ := reader.Read(ctx, []string{"AAPL", "MSFT"}, start, end)
+
+    dataMap := results.(map[string]*yahoo.ParsedData)
+    for symbol, data := range dataMap {
+        closes := data.GetColumn("Close")
+        fmt.Printf("%s: %d prices, first close: %s\n",
+            symbol, len(closes), closes[0])
+    }
 }
 ```
 
@@ -63,10 +76,23 @@ func main() {
 | Tiingo | Financial data | Yes |
 | IEX Cloud | Investors Exchange data | Yes |
 
+## Examples
+
+See the [examples](./examples/) directory for complete working examples:
+
+- [Basic Usage](./examples/basic/) - Simple example showing the three main ways to fetch data
+- [Advanced Usage](./examples/advanced/) - Custom options, error handling, and data analysis
+
+Run an example:
+```bash
+cd examples/basic
+go run main.go
+```
+
 ## Documentation
 
 - [API Reference](https://pkg.go.dev/github.com/julianshen/gonp-datareader)
-- [Examples](./examples/)
+- [Examples](./examples/) - Working code examples
 - [Data Sources](./docs/sources.md)
 - [Development Guide](./CLAUDE.md)
 
