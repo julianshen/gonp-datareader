@@ -68,6 +68,7 @@
 //   - alphavantage: Alpha Vantage - Stock market data (requires API key)
 //   - stooq: Stooq - Free international stock market data
 //   - iex: IEX Cloud - Professional stock market data (requires API token)
+//   - tiingo: Tiingo - Stock market data with high-quality fundamentals (requires API token)
 //
 // Use ListSources() to get a list of all available sources at runtime.
 //
@@ -119,6 +120,7 @@ import (
 	"github.com/julianshen/gonp-datareader/sources/fred"
 	"github.com/julianshen/gonp-datareader/sources/iex"
 	"github.com/julianshen/gonp-datareader/sources/stooq"
+	"github.com/julianshen/gonp-datareader/sources/tiingo"
 	"github.com/julianshen/gonp-datareader/sources/worldbank"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
@@ -137,6 +139,7 @@ var (
 //   - "worldbank": World Bank - international economic indicators (no API key required)
 //   - "alphavantage": Alpha Vantage - stock market data (API key required)
 //   - "stooq": Stooq - free international stock market data (no API key required)
+//   - "tiingo": Tiingo - stock market data (API key required)
 //   - "iex": IEX Cloud - professional stock market data (API token required)
 //
 // The opts parameter provides configuration for the reader. If nil, default options are used.
@@ -199,6 +202,12 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return stooq.NewStooqReader(clientOpts), nil
 	case "iex":
 		return iex.NewIEXReader(clientOpts, apiKey), nil
+	case "tiingo":
+		reader := tiingo.NewTiingoReader(clientOpts)
+		if apiKey != "" {
+			reader.SetAPIKey(apiKey)
+		}
+		return reader, nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -289,5 +298,6 @@ func ListSources() []string {
 		"alphavantage",
 		"stooq",
 		"iex",
+		"tiingo",
 	}
 }

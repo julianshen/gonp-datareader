@@ -66,6 +66,7 @@ func main() {
 | **alphavantage** | Alpha Vantage - Real-time & historical data | Yes | `AAPL`, `MSFT` |
 | **stooq** | Stooq - Free international stock data | No | `AAPL.US`, `^SPX` |
 | **iex** | IEX Cloud - Professional stock market data | Yes | `AAPL`, `MSFT` |
+| **tiingo** | Tiingo - High-quality stock market data & fundamentals | Yes | `AAPL`, `MSFT` |
 
 *FRED works without an API key but has lower rate limits
 
@@ -85,6 +86,7 @@ reader, err := datareader.DataReader("alphavantage", opts)
 // export FRED_API_KEY=your_key
 // export ALPHAVANTAGE_API_KEY=your_key
 // export IEX_API_KEY=your_key
+// export TIINGO_API_KEY=your_key
 ```
 
 ### Getting API Keys
@@ -92,6 +94,7 @@ reader, err := datareader.DataReader("alphavantage", opts)
 - **FRED**: Free at https://fred.stlouisfed.org/docs/api/api_key.html
 - **Alpha Vantage**: Free tier at https://www.alphavantage.co/support/#api-key
 - **IEX Cloud**: Free tier at https://iexcloud.io/pricing/
+- **Tiingo**: Free tier at https://www.tiingo.com/account/api/token
 
 ## Advanced Usage
 
@@ -167,6 +170,7 @@ See the [examples](./examples/) directory for complete working examples:
 - **[Alpha Vantage](./examples/alphavantage/)** - Stock market data with API key
 - **[Stooq](./examples/stooq/)** - Free international stock market data
 - **[IEX Cloud](./examples/iex/)** - Professional stock market data
+- **[Tiingo](./examples/tiingo/)** - High-quality stock market data and fundamentals
 
 Run an example:
 ```bash
