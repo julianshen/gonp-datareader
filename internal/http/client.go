@@ -19,6 +19,9 @@ type ClientOptions struct {
 
 	// RetryDelay specifies the delay between retry attempts
 	RetryDelay time.Duration
+
+	// RateLimit specifies requests per second limit (0 = unlimited)
+	RateLimit float64
 }
 
 // DefaultClientOptions returns default HTTP client options.

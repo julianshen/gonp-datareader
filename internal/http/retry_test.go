@@ -233,6 +233,88 @@ func TestRetryableClient_DefaultUserAgent(t *testing.T) {
 	}
 }
 
+func TestRetryableClient_WithRateLimiter(t *testing.T) {
+	var requestCount atomic.Int32
+
+	// Server that counts requests
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// Rate limiter: 2 requests per second
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+		RateLimit:  2.0, // 2 requests per second
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// Make 3 requests
+	start := time.Now()
+	for i := 0; i < 3; i++ {
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("Request %d failed: %v", i, err)
+		}
+		resp.Body.Close()
+	}
+	elapsed := time.Since(start)
+
+	// Should take at least 1 second for 3 requests at 2 req/sec
+	// (0s, 0.5s, 1.0s)
+	if elapsed < 900*time.Millisecond {
+		t.Errorf("Expected rate limiting to take >= 900ms, took %v", elapsed)
+	}
+
+	if requestCount.Load() != 3 {
+		t.Errorf("Expected 3 requests, got %d", requestCount.Load())
+	}
+}
+
+func TestRetryableClient_NoRateLimiter(t *testing.T) {
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// No rate limit configured (0 or nil)
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+		RateLimit:  0, // No rate limit
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// Make 10 requests quickly
+	start := time.Now()
+	for i := 0; i < 10; i++ {
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("Request %d failed: %v", i, err)
+		}
+		resp.Body.Close()
+	}
+	elapsed := time.Since(start)
+
+	// Should complete quickly without rate limiting
+	if elapsed > 100*time.Millisecond {
+		t.Errorf("Without rate limiting, expected < 100ms, took %v", elapsed)
+	}
+
+	if requestCount.Load() != 10 {
+		t.Errorf("Expected 10 requests, got %d", requestCount.Load())
+	}
+}
+
 func TestShouldRetry(t *testing.T) {
 	tests := []struct {
 		name       string

@@ -3,14 +3,17 @@ package http
 import (
 	"net/http"
 	"time"
+
+	"github.com/julianshen/gonp-datareader/internal/ratelimit"
 )
 
 // RetryableClient wraps an http.Client with retry logic.
 type RetryableClient struct {
-	client     *http.Client
-	maxRetries int
-	retryDelay time.Duration
-	userAgent  string
+	client      *http.Client
+	maxRetries  int
+	retryDelay  time.Duration
+	userAgent   string
+	rateLimiter *ratelimit.RateLimiter
 }
 
 // NewRetryableClient creates a new HTTP client with retry logic.
@@ -19,11 +22,19 @@ func NewRetryableClient(opts *ClientOptions) *RetryableClient {
 		opts = DefaultClientOptions()
 	}
 
+	// Create rate limiter if rate limit is configured
+	var limiter *ratelimit.RateLimiter
+	if opts.RateLimit > 0 {
+		// Use burst of 1 for strict rate limiting
+		limiter = ratelimit.NewRateLimiter(opts.RateLimit, 1)
+	}
+
 	return &RetryableClient{
-		client:     NewHTTPClient(opts),
-		maxRetries: opts.MaxRetries,
-		retryDelay: opts.RetryDelay,
-		userAgent:  opts.UserAgent,
+		client:      NewHTTPClient(opts),
+		maxRetries:  opts.MaxRetries,
+		retryDelay:  opts.RetryDelay,
+		userAgent:   opts.UserAgent,
+		rateLimiter: limiter,
 	}
 }
 
@@ -33,6 +44,13 @@ func (c *RetryableClient) Do(req *http.Request) (*http.Response, error) {
 	var err error
 
 	for attempt := 0; attempt <= c.maxRetries; attempt++ {
+		// Apply rate limiting before making request
+		if c.rateLimiter != nil {
+			if err := c.rateLimiter.Wait(req.Context()); err != nil {
+				return nil, err
+			}
+		}
+
 		// Clone the request for retry attempts
 		reqClone := req.Clone(req.Context())
 
