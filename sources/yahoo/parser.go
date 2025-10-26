@@ -64,7 +64,8 @@ func ParseCSV(reader io.Reader) (*ParsedData, error) {
 	rows := make([]map[string]string, 0, len(records)-1)
 	for i := 1; i < len(records); i++ {
 		record := records[i]
-		row := make(map[string]string)
+		// Pre-allocate map with capacity to avoid reallocations
+		row := make(map[string]string, len(header))
 
 		for j, value := range record {
 			if j < len(header) {
