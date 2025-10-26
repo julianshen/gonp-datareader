@@ -4,6 +4,8 @@ package stooq
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"time"
 
@@ -38,8 +40,45 @@ func BuildURL(symbol string) string {
 
 // ReadSingle fetches data for a single symbol.
 func (s *StooqReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement
-	return nil, nil
+	// Validate symbol
+	if err := s.ValidateSymbol(symbol); err != nil {
+		return nil, err
+	}
+
+	// Build URL
+	urlStr := BuildURL(symbol)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := s.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse CSV
+	data, err := ParseCSV(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse CSV: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple symbols.
