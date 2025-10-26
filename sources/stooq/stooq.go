@@ -3,6 +3,8 @@ package stooq
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -21,6 +23,17 @@ func NewStooqReader(opts *internalhttp.ClientOptions) *StooqReader {
 		BaseSource: sources.NewBaseSource("stooq"),
 		client:     internalhttp.NewRetryableClient(opts),
 	}
+}
+
+// BuildURL constructs the Stooq URL for fetching historical data.
+// The Stooq format is:
+// https://stooq.com/q/d/l/?s={symbol}&i=d
+// where i=d means daily data
+func BuildURL(symbol string) string {
+	return fmt.Sprintf(
+		"https://stooq.com/q/d/l/?s=%s&i=d",
+		url.QueryEscape(symbol),
+	)
 }
 
 // ReadSingle fetches data for a single symbol.
