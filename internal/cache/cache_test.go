@@ -255,7 +255,7 @@ func BenchmarkFileCache_Get(b *testing.B) {
 	testData := []byte("test data for benchmarking cache get operation")
 	ttl := 1 * time.Hour
 	key := "benchmark-key"
-	
+
 	err := cache.Set(key, testData, ttl)
 	if err != nil {
 		b.Fatal(err)
@@ -284,7 +284,7 @@ func BenchmarkFileCache_SetAndGet(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		key := fmt.Sprintf("benchmark-key-%d", i)
-		
+
 		err := cache.Set(key, testData, ttl)
 		if err != nil {
 			b.Fatal(err)

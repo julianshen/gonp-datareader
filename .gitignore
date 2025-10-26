@@ -31,11 +31,18 @@ Thumbs.db
 # Build output
 bin/
 dist/
-examples/*/basic
-examples/*/advanced
-examples/*/fred
-examples/*/iex
-examples/*/stooq
+
+# Example binaries (executables in examples directories)
+examples/basic/basic
+examples/advanced/advanced
+examples/fred/fred
+examples/worldbank/worldbank
+examples/alphavantage/alphavantage
+examples/stooq/stooq
+examples/iex/iex
+examples/tiingo/tiingo
+examples/oecd/oecd
+examples/eurostat/eurostat
 
 # Test binaries (executables in root)
 /iex
@@ -44,6 +51,9 @@ examples/*/stooq
 /fred
 /worldbank
 /alphavantage
+/tiingo
+/oecd
+/eurostat
 
 # Coverage reports
 coverage.out

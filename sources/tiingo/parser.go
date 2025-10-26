@@ -70,18 +70,18 @@ func (p *ParsedData) GetColumn(name string) []string {
 
 // tiingoResponse represents the JSON structure returned by Tiingo API.
 type tiingoResponse struct {
-	Date      string  `json:"date"`
-	Close     float64 `json:"close"`
-	High      float64 `json:"high"`
-	Low       float64 `json:"low"`
-	Open      float64 `json:"open"`
-	Volume    int64   `json:"volume"`
-	AdjClose  float64 `json:"adjClose"`
-	AdjHigh   float64 `json:"adjHigh"`
-	AdjLow    float64 `json:"adjLow"`
-	AdjOpen   float64 `json:"adjOpen"`
-	AdjVolume int64   `json:"adjVolume"`
-	DivCash   float64 `json:"divCash"`
+	Date        string  `json:"date"`
+	Close       float64 `json:"close"`
+	High        float64 `json:"high"`
+	Low         float64 `json:"low"`
+	Open        float64 `json:"open"`
+	Volume      int64   `json:"volume"`
+	AdjClose    float64 `json:"adjClose"`
+	AdjHigh     float64 `json:"adjHigh"`
+	AdjLow      float64 `json:"adjLow"`
+	AdjOpen     float64 `json:"adjOpen"`
+	AdjVolume   int64   `json:"adjVolume"`
+	DivCash     float64 `json:"divCash"`
 	SplitFactor float64 `json:"splitFactor"`
 }
 

@@ -69,10 +69,10 @@ func main() {
 
 	// Stooq supports international markets
 	symbols := map[string]string{
-		"MSFT.US":  "Microsoft (US)",
-		"^SPX":     "S&P 500 Index",
-		"^DJI":     "Dow Jones Industrial Average",
-		"AAPL.US":  "Apple Inc",
+		"MSFT.US": "Microsoft (US)",
+		"^SPX":    "S&P 500 Index",
+		"^DJI":    "Dow Jones Industrial Average",
+		"AAPL.US": "Apple Inc",
 	}
 
 	for symbol, name := range symbols {

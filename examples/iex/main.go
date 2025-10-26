@@ -84,10 +84,10 @@ func main() {
 	fmt.Println("\n--- Example 3: Multiple Stock Symbols ---")
 
 	symbols := map[string]string{
-		"AAPL": "Apple Inc",
-		"MSFT": "Microsoft Corporation",
+		"AAPL":  "Apple Inc",
+		"MSFT":  "Microsoft Corporation",
 		"GOOGL": "Alphabet Inc",
-		"TSLA": "Tesla Inc",
+		"TSLA":  "Tesla Inc",
 	}
 
 	for symbol, name := range symbols {
