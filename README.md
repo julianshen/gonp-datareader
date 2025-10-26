@@ -68,6 +68,7 @@ func main() {
 | **iex** | IEX Cloud - Professional stock market data | Yes | `AAPL`, `MSFT` |
 | **tiingo** | Tiingo - High-quality stock market data & fundamentals | Yes | `AAPL`, `MSFT` |
 | **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
+| **eurostat** | Eurostat - European Union statistics | No | `DEMO_R_D3DENS`, `GDP` |
 
 *FRED works without an API key but has lower rate limits
 
@@ -173,6 +174,7 @@ See the [examples](./examples/) directory for complete working examples:
 - **[IEX Cloud](./examples/iex/)** - Professional stock market data
 - **[Tiingo](./examples/tiingo/)** - High-quality stock market data and fundamentals
 - **[OECD](./examples/oecd/)** - Economic indicators and statistics
+- **[Eurostat](./examples/eurostat/)** - European Union statistics
 
 Run an example:
 ```bash
@@ -205,6 +207,7 @@ All core phases complete:
 - ✅ **IEX Cloud**: Professional stock market data (requires API token)
 - ✅ **Tiingo**: High-quality stock market data and fundamentals
 - ✅ **OECD**: Economic indicators and statistics (SDMX-JSON format)
+- ✅ **Eurostat**: European Union statistics (JSON-stat format)
 - ✅ **Rate Limiting**: Token bucket algorithm for API limits
 - ✅ **Response Caching**: File-based caching with TTL
 - ✅ **Comprehensive Tests**: >75% test coverage
