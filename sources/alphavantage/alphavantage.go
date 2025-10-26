@@ -3,6 +3,7 @@ package alphavantage
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -24,6 +25,17 @@ func NewAlphaVantageReader(opts *internalhttp.ClientOptions, apiKey string) *Alp
 		client:     internalhttp.NewRetryableClient(opts),
 		apiKey:     apiKey,
 	}
+}
+
+// BuildURL constructs the Alpha Vantage API URL for fetching daily time series data.
+// The Alpha Vantage API format is:
+// https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={apikey}&outputsize=full
+func BuildURL(symbol, apiKey string) string {
+	return fmt.Sprintf(
+		"https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&apikey=%s&outputsize=full",
+		symbol,
+		apiKey,
+	)
 }
 
 // ReadSingle fetches data for a single stock symbol.
