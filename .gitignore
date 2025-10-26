@@ -39,6 +39,11 @@ examples/*/fred
 coverage.out
 coverage.html
 
+# Profiling files
+*.prof
+cpu.prof
+mem.prof
+
 # Cache directories
 .datareader_cache/
 *.cache
