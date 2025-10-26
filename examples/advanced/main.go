@@ -19,14 +19,16 @@ func main() {
 
 	ctx := context.Background()
 
-	// Custom options with longer timeout, more retries, and rate limiting
+	// Custom options with longer timeout, more retries, rate limiting, and caching
 	// Note: UserAgent should be browser-like for Yahoo Finance compatibility
 	opts := &datareader.Options{
 		Timeout:    60 * time.Second,
 		MaxRetries: 5,
 		RetryDelay: 2 * time.Second,
 		UserAgent:  "Mozilla/5.0 (compatible; gonp-datareader/1.0)",
-		RateLimit:  2.0, // Limit to 2 requests per second
+		RateLimit:  2.0,            // Limit to 2 requests per second
+		CacheDir:   ".cache/yahoo", // Enable caching
+		CacheTTL:   24 * time.Hour, // Cache for 24 hours
 	}
 
 	fmt.Println("\nConfiguration:")
@@ -35,6 +37,8 @@ func main() {
 	fmt.Printf("  Retry Delay: %v\n", opts.RetryDelay)
 	fmt.Printf("  User Agent: %s\n", opts.UserAgent)
 	fmt.Printf("  Rate Limit: %.1f req/sec\n", opts.RateLimit)
+	fmt.Printf("  Cache Dir: %s\n", opts.CacheDir)
+	fmt.Printf("  Cache TTL: %v\n", opts.CacheTTL)
 
 	// Create reader with custom options
 	reader, err := datareader.DataReader("yahoo", opts)
@@ -67,6 +71,8 @@ func main() {
 	end := time.Now()
 	start := end.AddDate(0, 0, -7) // Last week
 
+	fmt.Println("First request (will hit Yahoo API and cache)...")
+	startTime := time.Now()
 	result, err := reader.ReadSingle(ctx, "TSLA", start, end)
 	if err != nil {
 		// Handle different error types
@@ -77,9 +83,26 @@ func main() {
 
 		log.Fatalf("Failed to fetch data")
 	}
+	firstDuration := time.Since(startTime)
 
 	data := result.(*yahoo.ParsedData)
-	fmt.Printf("✓ Successfully fetched %d days of TSLA data\n", len(data.Rows))
+	fmt.Printf("✓ Successfully fetched %d days of TSLA data (took %v)\n", len(data.Rows), firstDuration)
+
+	// Demonstrate caching by making the same request again
+	fmt.Println("\nSecond request (will use cache)...")
+	startTime = time.Now()
+	result2, err := reader.ReadSingle(ctx, "TSLA", start, end)
+	if err != nil {
+		log.Fatalf("Failed to fetch cached data: %v", err)
+	}
+	secondDuration := time.Since(startTime)
+
+	data2 := result2.(*yahoo.ParsedData)
+	fmt.Printf("✓ Successfully fetched %d days of TSLA data (took %v)\n", len(data2.Rows), secondDuration)
+
+	if secondDuration < firstDuration/2 {
+		fmt.Printf("  Cache speedup: %.1fx faster!\n", float64(firstDuration)/float64(secondDuration))
+	}
 
 	// Analyze the data
 	fmt.Println("\n--- Data Analysis ---")

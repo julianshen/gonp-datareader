@@ -30,6 +30,9 @@ type Options struct {
 	// CacheDir specifies the cache directory
 	CacheDir string
 
+	// CacheTTL specifies the cache time-to-live (0 = no expiration)
+	CacheTTL time.Duration
+
 	// RateLimit specifies requests per second limit
 	RateLimit float64
 
