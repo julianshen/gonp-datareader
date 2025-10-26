@@ -107,6 +107,7 @@ func (y *YahooReader) ReadSingle(ctx context.Context, symbol string, start, end 
 }
 
 // Read fetches data for multiple symbols from Yahoo Finance.
+// Symbols are fetched in parallel for better performance.
 func (y *YahooReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
 	// Validate inputs
 	if err := utils.ValidateSymbols(symbols); err != nil {
@@ -117,18 +118,63 @@ func (y *YahooReader) Read(ctx context.Context, symbols []string, start, end tim
 		return nil, fmt.Errorf("invalid date range: %w", err)
 	}
 
-	// Fetch data for each symbol
-	results := make(map[string]*ParsedData)
-	for _, symbol := range symbols {
-		data, err := y.ReadSingle(ctx, symbol, start, end)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
-		}
+	// Use parallel fetching for multiple symbols
+	return y.readParallel(ctx, symbols, start, end)
+}
 
-		if parsedData, ok := data.(*ParsedData); ok {
-			results[symbol] = parsedData
-		}
+// readParallel fetches multiple symbols in parallel using a worker pool.
+func (y *YahooReader) readParallel(ctx context.Context, symbols []string, start, end time.Time) (map[string]*ParsedData, error) {
+	type result struct {
+		symbol string
+		data   *ParsedData
+		err    error
 	}
 
-	return results, nil
+	// Create channels for work distribution and results
+	results := make(chan result, len(symbols))
+
+	// Create worker pool - limit concurrency to avoid overwhelming the server
+	maxWorkers := 10
+	if len(symbols) < maxWorkers {
+		maxWorkers = len(symbols)
+	}
+
+	// Use a semaphore pattern to limit concurrent workers
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Launch goroutines for each symbol
+	for _, symbol := range symbols {
+		// Capture symbol in loop variable
+		sym := symbol
+
+		go func() {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Fetch data
+			data, err := y.ReadSingle(ctx, sym, start, end)
+
+			// Send result
+			res := result{symbol: sym, err: err}
+			if err == nil {
+				if parsedData, ok := data.(*ParsedData); ok {
+					res.data = parsedData
+				}
+			}
+			results <- res
+		}()
+	}
+
+	// Collect results
+	dataMap := make(map[string]*ParsedData, len(symbols))
+	for i := 0; i < len(symbols); i++ {
+		res := <-results
+		if res.err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", res.symbol, res.err)
+		}
+		dataMap[res.symbol] = res.data
+	}
+
+	return dataMap, nil
 }
