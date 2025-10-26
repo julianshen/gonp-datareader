@@ -4,10 +4,13 @@ package yahoo
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/julianshen/gonp-datareader"
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/internal/utils"
 	"github.com/julianshen/gonp-datareader/sources"
 )
 
@@ -19,11 +22,18 @@ const (
 // YahooReader fetches data from Yahoo Finance.
 type YahooReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
+	client  *internalhttp.RetryableClient
+	baseURL string
 }
 
 // NewYahooReader creates a new Yahoo Finance data reader.
 func NewYahooReader(opts *datareader.Options) *YahooReader {
+	return NewYahooReaderWithBaseURL(opts, yahooAPIURL)
+}
+
+// NewYahooReaderWithBaseURL creates a new Yahoo Finance reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewYahooReaderWithBaseURL(opts *datareader.Options, baseURL string) *YahooReader {
 	if opts == nil {
 		opts = datareader.DefaultOptions()
 	}
@@ -38,6 +48,7 @@ func NewYahooReader(opts *datareader.Options) *YahooReader {
 	return &YahooReader{
 		BaseSource: sources.NewBaseSource("yahoo"),
 		client:     internalhttp.NewRetryableClient(clientOpts),
+		baseURL:    baseURL,
 	}
 }
 
@@ -48,7 +59,7 @@ func (y *YahooReader) Name() string {
 
 // BuildURL constructs the Yahoo Finance API URL for the given symbol and date range.
 func (y *YahooReader) BuildURL(symbol string, start, end time.Time) string {
-	baseURL := fmt.Sprintf(yahooAPIURL, symbol)
+	baseURL := fmt.Sprintf(y.baseURL, symbol)
 
 	// Convert dates to Unix timestamps
 	period1 := start.Unix()
@@ -61,14 +72,71 @@ func (y *YahooReader) BuildURL(symbol string, start, end time.Time) string {
 	return url
 }
 
-// Read fetches data for multiple symbols from Yahoo Finance.
-func (y *YahooReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
-	// For now, return a simple error - we'll implement actual fetching later
-	return nil, fmt.Errorf("not yet implemented")
-}
-
 // ReadSingle fetches data for a single symbol from Yahoo Finance.
 func (y *YahooReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// For now, return a simple error - we'll implement actual fetching later
-	return nil, fmt.Errorf("not yet implemented")
+	// Validate inputs
+	if err := y.ValidateSymbol(symbol); err != nil {
+		return nil, fmt.Errorf("invalid symbol: %w", err)
+	}
+
+	if err := utils.ValidateDateRange(start, end); err != nil {
+		return nil, fmt.Errorf("invalid date range: %w", err)
+	}
+
+	// Build URL
+	url := y.BuildURL(symbol, start, end)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := y.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("yahoo finance returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse CSV response
+	data, err := ParseCSV(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse CSV: %w", err)
+	}
+
+	return data, nil
+}
+
+// Read fetches data for multiple symbols from Yahoo Finance.
+func (y *YahooReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
+	// Validate inputs
+	if err := utils.ValidateSymbols(symbols); err != nil {
+		return nil, fmt.Errorf("invalid symbols: %w", err)
+	}
+
+	if err := utils.ValidateDateRange(start, end); err != nil {
+		return nil, fmt.Errorf("invalid date range: %w", err)
+	}
+
+	// Fetch data for each symbol
+	results := make(map[string]*ParsedData)
+	for _, symbol := range symbols {
+		data, err := y.ReadSingle(ctx, symbol, start, end)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
+		}
+
+		if parsedData, ok := data.(*ParsedData); ok {
+			results[symbol] = parsedData
+		}
+	}
+
+	return results, nil
 }
