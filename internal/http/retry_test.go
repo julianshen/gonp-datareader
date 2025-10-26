@@ -3,8 +3,10 @@ package http_test
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -376,5 +378,224 @@ func TestShouldRetry(t *testing.T) {
 				t.Errorf("ShouldRetry() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRetryableClient_WithCache(t *testing.T) {
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("cached response"))
+	}))
+	defer server.Close()
+
+	// Create temporary cache directory
+	tmpDir, err := os.MkdirTemp("", "http-cache-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Configure client with cache
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+		CacheDir:   tmpDir,
+		CacheTTL:   1 * time.Hour,
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// First request - should hit server and cache
+	req1, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL+"/test", nil)
+	resp1, err := client.Do(req1)
+	if err != nil {
+		t.Fatalf("First request failed: %v", err)
+	}
+	body1, _ := io.ReadAll(resp1.Body)
+	resp1.Body.Close()
+
+	if string(body1) != "cached response" {
+		t.Errorf("Expected 'cached response', got %q", string(body1))
+	}
+
+	if requestCount.Load() != 1 {
+		t.Errorf("Expected 1 server request, got %d", requestCount.Load())
+	}
+
+	// Second request - should come from cache
+	req2, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL+"/test", nil)
+	resp2, err := client.Do(req2)
+	if err != nil {
+		t.Fatalf("Second request failed: %v", err)
+	}
+	body2, _ := io.ReadAll(resp2.Body)
+	resp2.Body.Close()
+
+	if string(body2) != "cached response" {
+		t.Errorf("Expected 'cached response', got %q", string(body2))
+	}
+
+	// Should still be only 1 server request (second came from cache)
+	if requestCount.Load() != 1 {
+		t.Errorf("Expected 1 server request (cached), got %d", requestCount.Load())
+	}
+}
+
+func TestRetryableClient_CacheOnlyGET(t *testing.T) {
+	var getCount atomic.Int32
+	var postCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			getCount.Add(1)
+		} else if r.Method == "POST" {
+			postCount.Add(1)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("response"))
+	}))
+	defer server.Close()
+
+	tmpDir, err := os.MkdirTemp("", "http-cache-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+		CacheDir:   tmpDir,
+		CacheTTL:   1 * time.Hour,
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// GET request - should be cached
+	req1, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	resp1, err := client.Do(req1)
+	if err != nil {
+		t.Fatalf("GET request failed: %v", err)
+	}
+	resp1.Body.Close()
+
+	req2, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	resp2, err := client.Do(req2)
+	if err != nil {
+		t.Fatalf("Second GET request failed: %v", err)
+	}
+	resp2.Body.Close()
+
+	// Only 1 GET should hit server (second is cached)
+	if getCount.Load() != 1 {
+		t.Errorf("Expected 1 GET request, got %d", getCount.Load())
+	}
+
+	// POST request - should NOT be cached
+	req3, _ := http.NewRequestWithContext(context.Background(), "POST", server.URL, nil)
+	resp3, err := client.Do(req3)
+	if err != nil {
+		t.Fatalf("First POST request failed: %v", err)
+	}
+	resp3.Body.Close()
+
+	req4, _ := http.NewRequestWithContext(context.Background(), "POST", server.URL, nil)
+	resp4, err := client.Do(req4)
+	if err != nil {
+		t.Fatalf("Second POST request failed: %v", err)
+	}
+	resp4.Body.Close()
+
+	// Both POSTs should hit server
+	if postCount.Load() != 2 {
+		t.Errorf("Expected 2 POST requests, got %d", postCount.Load())
+	}
+}
+
+func TestRetryableClient_NoCache(t *testing.T) {
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("response"))
+	}))
+	defer server.Close()
+
+	// No cache configured
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// Make two identical requests
+	for i := 0; i < 2; i++ {
+		req, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+		resp, err := client.Do(req)
+		if err != nil {
+			t.Fatalf("Request %d failed: %v", i+1, err)
+		}
+		resp.Body.Close()
+	}
+
+	// Both should hit server (no cache)
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests without cache, got %d", requestCount.Load())
+	}
+}
+
+func TestRetryableClient_CacheTTL(t *testing.T) {
+	var requestCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestCount.Add(1)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("response"))
+	}))
+	defer server.Close()
+
+	tmpDir, err := os.MkdirTemp("", "http-cache-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Very short TTL
+	opts := &internalhttp.ClientOptions{
+		Timeout:    5 * time.Second,
+		MaxRetries: 0,
+		CacheDir:   tmpDir,
+		CacheTTL:   100 * time.Millisecond,
+	}
+
+	client := internalhttp.NewRetryableClient(opts)
+
+	// First request
+	req1, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	resp1, err := client.Do(req1)
+	if err != nil {
+		t.Fatalf("First request failed: %v", err)
+	}
+	resp1.Body.Close()
+
+	// Wait for cache to expire
+	time.Sleep(150 * time.Millisecond)
+
+	// Second request - should hit server again (cache expired)
+	req2, _ := http.NewRequestWithContext(context.Background(), "GET", server.URL, nil)
+	resp2, err := client.Do(req2)
+	if err != nil {
+		t.Fatalf("Second request failed: %v", err)
+	}
+	resp2.Body.Close()
+
+	// Both should hit server (cache expired)
+	if requestCount.Load() != 2 {
+		t.Errorf("Expected 2 requests (cache expired), got %d", requestCount.Load())
 	}
 }

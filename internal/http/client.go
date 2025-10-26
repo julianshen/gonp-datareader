@@ -22,6 +22,12 @@ type ClientOptions struct {
 
 	// RateLimit specifies requests per second limit (0 = unlimited)
 	RateLimit float64
+
+	// CacheDir specifies the directory for caching responses (empty = no cache)
+	CacheDir string
+
+	// CacheTTL specifies the cache time-to-live (0 = no expiration)
+	CacheTTL time.Duration
 }
 
 // DefaultClientOptions returns default HTTP client options.
