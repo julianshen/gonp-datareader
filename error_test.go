@@ -48,8 +48,54 @@ func TestDataReaderError_Is(t *testing.T) {
 		Message: "invalid symbol",
 	}
 
-	if !errors.Is(err, err) {
-		t.Error("errors.Is should work with DataReaderError")
+	// Test matching error
+	matchingErr := &datareader.DataReaderError{
+		Type:    datareader.ErrInvalidSymbol,
+		Source:  "yahoo",
+		Message: "invalid symbol",
+	}
+
+	if !errors.Is(err, matchingErr) {
+		t.Error("errors.Is should return true for matching DataReaderError")
+	}
+
+	// Test non-matching type
+	differentType := &datareader.DataReaderError{
+		Type:    datareader.ErrNetworkError,
+		Source:  "yahoo",
+		Message: "invalid symbol",
+	}
+
+	if errors.Is(err, differentType) {
+		t.Error("errors.Is should return false for different error type")
+	}
+
+	// Test non-matching source
+	differentSource := &datareader.DataReaderError{
+		Type:    datareader.ErrInvalidSymbol,
+		Source:  "fred",
+		Message: "invalid symbol",
+	}
+
+	if errors.Is(err, differentSource) {
+		t.Error("errors.Is should return false for different source")
+	}
+
+	// Test non-matching message
+	differentMessage := &datareader.DataReaderError{
+		Type:    datareader.ErrInvalidSymbol,
+		Source:  "yahoo",
+		Message: "different message",
+	}
+
+	if errors.Is(err, differentMessage) {
+		t.Error("errors.Is should return false for different message")
+	}
+
+	// Test non-DataReaderError
+	regularErr := errors.New("regular error")
+	if errors.Is(err, regularErr) {
+		t.Error("errors.Is should return false for non-DataReaderError")
 	}
 }
 
