@@ -21,12 +21,19 @@ const (
 // FREDReader fetches data from FRED (Federal Reserve Economic Data).
 type FREDReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
-	apiKey string
+	client  *internalhttp.RetryableClient
+	apiKey  string
+	baseURL string // For testing with mock servers
 }
 
 // NewFREDReader creates a new FRED data reader.
 func NewFREDReader(opts *internalhttp.ClientOptions) *FREDReader {
+	return NewFREDReaderWithBaseURL(opts, fredAPIURL)
+}
+
+// NewFREDReaderWithBaseURL creates a new FRED reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewFREDReaderWithBaseURL(opts *internalhttp.ClientOptions, baseURL string) *FREDReader {
 	if opts == nil {
 		opts = internalhttp.DefaultClientOptions()
 	}
@@ -34,6 +41,7 @@ func NewFREDReader(opts *internalhttp.ClientOptions) *FREDReader {
 	return &FREDReader{
 		BaseSource: sources.NewBaseSource("fred"),
 		client:     internalhttp.NewRetryableClient(opts),
+		baseURL:    baseURL,
 	}
 }
 
@@ -65,8 +73,14 @@ func (f *FREDReader) BuildURL(seriesID string, start, end time.Time, apiKey stri
 	startStr := start.Format("2006-01-02")
 	endStr := end.Format("2006-01-02")
 
+	// Use custom baseURL if set (for testing), otherwise use standard FRED URL
+	baseURL := f.baseURL
+	if baseURL == "" {
+		baseURL = fredAPIURL
+	}
+
 	url := fmt.Sprintf("%s?series_id=%s&api_key=%s&observation_start=%s&observation_end=%s&file_type=json",
-		fredAPIURL, seriesID, apiKey, startStr, endStr)
+		baseURL, seriesID, apiKey, startStr, endStr)
 
 	return url
 }

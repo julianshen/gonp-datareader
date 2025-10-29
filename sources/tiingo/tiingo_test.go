@@ -218,6 +218,183 @@ func TestTiingoReader_RequiresAPIKey(t *testing.T) {
 	}
 }
 
+// TestTiingoReader_Read_MultipleSymbols tests parallel fetching of multiple symbols
+func TestTiingoReader_Read_MultipleSymbols(t *testing.T) {
+	jsonData := `[
+		{
+			"date": "2020-01-02T00:00:00.000Z",
+			"close": 300.35,
+			"high": 300.60,
+			"low": 295.19,
+			"open": 296.24,
+			"volume": 33911900,
+			"adjClose": 297.45,
+			"adjHigh": 300.60,
+			"adjLow": 295.19,
+			"adjOpen": 296.24,
+			"adjVolume": 33911900,
+			"divCash": 0.0,
+			"splitFactor": 1.0
+		}
+	]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonData))
+	}))
+	defer server.Close()
+
+	reader := tiingo.NewTiingoReaderWithBaseURL(nil, server.URL+"/tiingo/daily/%s/prices")
+	reader.SetAPIKey("test-api-key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	symbols := []string{"AAPL", "MSFT", "GOOGL"}
+	result, err := reader.Read(ctx, symbols, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	dataMap, ok := result.(map[string]*tiingo.ParsedData)
+	if !ok {
+		t.Fatalf("Expected map[string]*tiingo.ParsedData, got %T", result)
+	}
+
+	if len(dataMap) != len(symbols) {
+		t.Errorf("Expected %d results, got %d", len(symbols), len(dataMap))
+	}
+
+	for _, symbol := range symbols {
+		if _, exists := dataMap[symbol]; !exists {
+			t.Errorf("Missing data for symbol %s", symbol)
+		}
+	}
+}
+
+// TestTiingoReader_Read_InvalidDateRange tests error handling for invalid date ranges
+func TestTiingoReader_Read_InvalidDateRange(t *testing.T) {
+	reader := tiingo.NewTiingoReader(nil)
+	reader.SetAPIKey("test-api-key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC) // end before start
+
+	_, err := reader.Read(ctx, []string{"AAPL"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for invalid date range")
+	}
+}
+
+// TestTiingoReader_HTTPError tests handling of HTTP errors
+func TestTiingoReader_HTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	reader := tiingo.NewTiingoReaderWithBaseURL(nil, server.URL+"/tiingo/daily/%s/prices")
+	reader.SetAPIKey("test-api-key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for HTTP 500")
+	}
+
+	if !contains(err.Error(), "status 500") {
+		t.Errorf("Expected error to mention status 500, got: %v", err)
+	}
+}
+
+// TestTiingoReader_SetAPIKey tests the API key setter
+func TestTiingoReader_SetAPIKey(t *testing.T) {
+	reader := tiingo.NewTiingoReader(nil)
+
+	// Initially no API key
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("Expected error when API key is not set")
+	}
+
+	// Set API key and test it's used
+	reader.SetAPIKey("test-key")
+
+	// Create a mock server to verify the key is passed
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("token")
+		if token != "test-key" {
+			t.Errorf("Expected token 'test-key', got '%s'", token)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`[{"date": "2020-01-02T00:00:00.000Z", "close": 300.35, "high": 300.60, "low": 295.19, "open": 296.24, "volume": 33911900}]`))
+	}))
+	defer server.Close()
+
+	reader2 := tiingo.NewTiingoReaderWithBaseURL(nil, server.URL+"/tiingo/daily/%s/prices")
+	reader2.SetAPIKey("test-key")
+
+	_, err = reader2.ReadSingle(ctx, "AAPL", start, end)
+	if err != nil {
+		t.Errorf("ReadSingle() should succeed with valid API key: %v", err)
+	}
+}
+
+// TestTiingoReader_APIKeyFromContext tests getting API key from context
+func TestTiingoReader_APIKeyFromContext(t *testing.T) {
+	jsonData := `[{"date": "2020-01-02T00:00:00.000Z", "close": 300.35, "high": 300.60, "low": 295.19, "open": 296.24, "volume": 33911900}]`
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		token := r.URL.Query().Get("token")
+		if token != "context-key" {
+			t.Errorf("Expected token 'context-key' from context, got '%s'", token)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonData))
+	}))
+	defer server.Close()
+
+	reader := tiingo.NewTiingoReaderWithBaseURL(nil, server.URL+"/tiingo/daily/%s/prices")
+
+	// Set API key via context
+	ctx := context.WithValue(context.Background(), "apiKey", "context-key")
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err != nil {
+		t.Errorf("ReadSingle() should succeed with API key from context: %v", err)
+	}
+}
+
+// TestTiingoReader_Read_EmptySymbols tests error handling for empty symbol list
+func TestTiingoReader_Read_EmptySymbols(t *testing.T) {
+	reader := tiingo.NewTiingoReader(nil)
+	reader.SetAPIKey("test-api-key")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols list")
+	}
+}
+
 // Helper functions
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))
