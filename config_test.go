@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianshen/gonp-datareader"
+	datareader "github.com/julianshen/gonp-datareader"
 )
 
 func TestDefaultOptions(t *testing.T) {

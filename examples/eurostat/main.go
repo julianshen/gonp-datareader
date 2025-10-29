@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/julianshen/gonp-datareader"
+	datareader "github.com/julianshen/gonp-datareader"
 	"github.com/julianshen/gonp-datareader/sources/eurostat"
 )
 

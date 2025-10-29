@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/julianshen/gonp-datareader"
+	datareader "github.com/julianshen/gonp-datareader"
 )
 
 func TestDataReaderError_Error(t *testing.T) {

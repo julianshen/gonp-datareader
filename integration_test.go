@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/julianshen/gonp-datareader"
+	datareader "github.com/julianshen/gonp-datareader"
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
