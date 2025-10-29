@@ -17,14 +17,26 @@ import (
 // WorldBankReader fetches data from the World Bank API.
 type WorldBankReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
+	client  *internalhttp.RetryableClient
+	baseURL string // For testing with mock servers
 }
 
 // NewWorldBankReader creates a new World Bank data reader.
 func NewWorldBankReader(opts *internalhttp.ClientOptions) *WorldBankReader {
+	return NewWorldBankReaderWithBaseURL(opts, "https://api.worldbank.org/v2/country/%s/indicator/%s?date=%d:%d&format=json&per_page=1000")
+}
+
+// NewWorldBankReaderWithBaseURL creates a new World Bank reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewWorldBankReaderWithBaseURL(opts *internalhttp.ClientOptions, baseURL string) *WorldBankReader {
+	if opts == nil {
+		opts = internalhttp.DefaultClientOptions()
+	}
+
 	return &WorldBankReader{
 		BaseSource: sources.NewBaseSource("worldbank"),
 		client:     internalhttp.NewRetryableClient(opts),
+		baseURL:    baseURL,
 	}
 }
 
@@ -63,8 +75,13 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 	country := parts[0]
 	indicator := parts[1]
 
-	// Build URL
-	url := BuildURL(country, indicator, start, end)
+	// Build URL - use custom baseURL if set (for testing), otherwise use standard format
+	var url string
+	if w.baseURL != "" {
+		url = fmt.Sprintf(w.baseURL, country, indicator, start.Year(), end.Year())
+	} else {
+		url = BuildURL(country, indicator, start, end)
+	}
 
 	// Create HTTP request
 	req, err := newRequest(ctx, "GET", url)
@@ -103,8 +120,15 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 // Symbols are fetched in parallel for better performance.
 func (w *WorldBankReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
 	// Validate inputs
-	if err := utils.ValidateSymbols(symbols); err != nil {
-		return nil, fmt.Errorf("invalid symbols: %w", err)
+	if len(symbols) == 0 {
+		return nil, fmt.Errorf("invalid symbols: no symbols provided")
+	}
+
+	// Validate each symbol using our custom validation
+	for _, symbol := range symbols {
+		if err := w.ValidateSymbol(symbol); err != nil {
+			return nil, fmt.Errorf("invalid symbols: %w", err)
+		}
 	}
 
 	if err := utils.ValidateDateRange(start, end); err != nil {
@@ -173,8 +197,20 @@ func (w *WorldBankReader) readParallel(ctx context.Context, symbols []string, st
 }
 
 // ValidateSymbol checks if a symbol is valid for World Bank.
+// World Bank symbols are in the format "country/indicator", e.g., "USA/NY.GDP.MKTP.CD"
 func (w *WorldBankReader) ValidateSymbol(symbol string) error {
-	return w.BaseSource.ValidateSymbol(symbol)
+	if symbol == "" {
+		return fmt.Errorf("symbol cannot be empty")
+	}
+
+	// Check for invalid characters (spaces)
+	if strings.Contains(symbol, " ") {
+		return fmt.Errorf("symbol cannot contain spaces")
+	}
+
+	// World Bank symbols can contain / (separates country from indicator), . (in indicators), and _ (in identifiers)
+	// This is valid: "USA/NY.GDP.MKTP.CD", "USA;CHN/SP.POP.TOTL"
+	return nil
 }
 
 // splitSymbol splits a World Bank symbol into country and indicator.

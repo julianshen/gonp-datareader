@@ -16,17 +16,29 @@ import (
 // AlphaVantageReader fetches data from the Alpha Vantage API.
 type AlphaVantageReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
-	apiKey string
+	client  *internalhttp.RetryableClient
+	apiKey  string
+	baseURL string // For testing with mock servers
 }
 
 // NewAlphaVantageReader creates a new Alpha Vantage data reader.
 // An API key is required to use the Alpha Vantage API.
 func NewAlphaVantageReader(opts *internalhttp.ClientOptions, apiKey string) *AlphaVantageReader {
+	return NewAlphaVantageReaderWithBaseURL(opts, apiKey, "https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&apikey=%s&outputsize=full")
+}
+
+// NewAlphaVantageReaderWithBaseURL creates a new Alpha Vantage reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewAlphaVantageReaderWithBaseURL(opts *internalhttp.ClientOptions, apiKey, baseURL string) *AlphaVantageReader {
+	if opts == nil {
+		opts = internalhttp.DefaultClientOptions()
+	}
+
 	return &AlphaVantageReader{
 		BaseSource: sources.NewBaseSource("alphavantage"),
 		client:     internalhttp.NewRetryableClient(opts),
 		apiKey:     apiKey,
+		baseURL:    baseURL,
 	}
 }
 
@@ -53,8 +65,13 @@ func (a *AlphaVantageReader) ReadSingle(ctx context.Context, symbol string, star
 		return nil, fmt.Errorf("API key is required for Alpha Vantage")
 	}
 
-	// Build URL
-	url := BuildURL(symbol, a.apiKey)
+	// Build URL - use custom baseURL if set (for testing), otherwise use standard format
+	var url string
+	if a.baseURL != "" {
+		url = fmt.Sprintf(a.baseURL, symbol, a.apiKey)
+	} else {
+		url = BuildURL(symbol, a.apiKey)
+	}
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)

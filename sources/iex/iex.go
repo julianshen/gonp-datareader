@@ -16,17 +16,29 @@ import (
 // IEXReader fetches data from IEX Cloud API.
 type IEXReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
-	apiKey string
+	client  *internalhttp.RetryableClient
+	apiKey  string
+	baseURL string // For testing with mock servers
 }
 
 // NewIEXReader creates a new IEX Cloud data reader.
 // An API token is required to use the IEX Cloud API.
 func NewIEXReader(opts *internalhttp.ClientOptions, apiKey string) *IEXReader {
+	return NewIEXReaderWithBaseURL(opts, apiKey, "https://cloud.iexapis.com/stable/stock/%s/chart/%s?token=%s")
+}
+
+// NewIEXReaderWithBaseURL creates a new IEX Cloud reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewIEXReaderWithBaseURL(opts *internalhttp.ClientOptions, apiKey, baseURL string) *IEXReader {
+	if opts == nil {
+		opts = internalhttp.DefaultClientOptions()
+	}
+
 	return &IEXReader{
 		BaseSource: sources.NewBaseSource("iex"),
 		client:     internalhttp.NewRetryableClient(opts),
 		apiKey:     apiKey,
+		baseURL:    baseURL,
 	}
 }
 
@@ -77,8 +89,13 @@ func (i *IEXReader) ReadSingle(ctx context.Context, symbol string, start, end ti
 	// Calculate date range in IEX Cloud format
 	dateRange := CalculateDateRange(start, end)
 
-	// Build request URL
-	url := BuildURL(symbol, dateRange, i.apiKey)
+	// Build request URL - use custom baseURL if set (for testing), otherwise use standard format
+	var url string
+	if i.baseURL != "" {
+		url = fmt.Sprintf(i.baseURL, symbol, dateRange, i.apiKey)
+	} else {
+		url = BuildURL(symbol, dateRange, i.apiKey)
+	}
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)

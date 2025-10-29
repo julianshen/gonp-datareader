@@ -17,14 +17,26 @@ import (
 // StooqReader fetches data from Stooq.
 type StooqReader struct {
 	*sources.BaseSource
-	client *internalhttp.RetryableClient
+	client  *internalhttp.RetryableClient
+	baseURL string // For testing with mock servers
 }
 
 // NewStooqReader creates a new Stooq data reader.
 func NewStooqReader(opts *internalhttp.ClientOptions) *StooqReader {
+	return NewStooqReaderWithBaseURL(opts, "https://stooq.com/q/d/l/?s=%s&i=d")
+}
+
+// NewStooqReaderWithBaseURL creates a new Stooq reader with a custom base URL.
+// This is primarily used for testing with mock servers.
+func NewStooqReaderWithBaseURL(opts *internalhttp.ClientOptions, baseURL string) *StooqReader {
+	if opts == nil {
+		opts = internalhttp.DefaultClientOptions()
+	}
+
 	return &StooqReader{
 		BaseSource: sources.NewBaseSource("stooq"),
 		client:     internalhttp.NewRetryableClient(opts),
+		baseURL:    baseURL,
 	}
 }
 
@@ -46,8 +58,13 @@ func (s *StooqReader) ReadSingle(ctx context.Context, symbol string, start, end 
 		return nil, err
 	}
 
-	// Build URL
-	urlStr := BuildURL(symbol)
+	// Build URL - use custom baseURL if set (for testing), otherwise use standard format
+	var urlStr string
+	if s.baseURL != "" {
+		urlStr = fmt.Sprintf(s.baseURL, url.QueryEscape(symbol))
+	} else {
+		urlStr = BuildURL(symbol)
+	}
 
 	// Create HTTP request
 	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
