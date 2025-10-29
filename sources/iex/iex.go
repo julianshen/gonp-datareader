@@ -112,7 +112,10 @@ func (i *IEXReader) ReadSingle(ctx context.Context, symbol string, start, end ti
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("IEX Cloud returned status %d (failed to read response body: %w)", resp.StatusCode, err)
+		}
 		return nil, fmt.Errorf("IEX Cloud returned status %d: %s", resp.StatusCode, string(body))
 	}
 

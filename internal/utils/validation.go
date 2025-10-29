@@ -49,7 +49,7 @@ func ValidateSymbol(symbol string) error {
 // ValidateSymbols validates a list of symbols.
 // Returns an error if the list is empty or any symbol is invalid.
 func ValidateSymbols(symbols []string) error {
-	if symbols == nil || len(symbols) == 0 {
+	if len(symbols) == 0 {
 		return ErrEmptySymbolList
 	}
 

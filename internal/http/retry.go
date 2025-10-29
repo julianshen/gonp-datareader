@@ -108,7 +108,8 @@ func (c *RetryableClient) Do(req *http.Request) (*http.Response, error) {
 		if readErr == nil {
 			// Store in cache (ignore error as cache is best-effort)
 			cacheKey := req.URL.String()
-			_ = c.cache.Set(cacheKey, body, c.cacheTTL)
+			//nolint:errcheck // Cache is best-effort, errors are acceptable
+			c.cache.Set(cacheKey, body, c.cacheTTL)
 
 			// Replace body with new reader for caller
 			resp.Body = io.NopCloser(bytes.NewReader(body))

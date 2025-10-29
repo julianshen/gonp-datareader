@@ -370,7 +370,7 @@ func TestTiingoReader_APIKeyFromContext(t *testing.T) {
 	reader := tiingo.NewTiingoReaderWithBaseURL(nil, server.URL+"/tiingo/daily/%s/prices")
 
 	// Set API key via context
-	ctx := context.WithValue(context.Background(), "apiKey", "context-key")
+	ctx := context.WithValue(context.Background(), tiingo.APIKeyContextKey, "context-key")
 	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
 

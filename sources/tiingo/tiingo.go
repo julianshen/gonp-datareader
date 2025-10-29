@@ -18,6 +18,14 @@ const (
 	tiingoAPIURL = "https://api.tiingo.com/tiingo/daily/%s/prices"
 )
 
+// contextKey is a custom type for context keys to avoid collisions.
+type contextKey string
+
+const (
+	// APIKeyContextKey is the context key for the API key
+	APIKeyContextKey contextKey = "apiKey"
+)
+
 // TiingoReader fetches data from Tiingo API.
 type TiingoReader struct {
 	*sources.BaseSource
@@ -101,7 +109,10 @@ func (t *TiingoReader) ReadSingle(ctx context.Context, symbol string, start, end
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("tiingo returned status %d (failed to read response body: %w)", resp.StatusCode, err)
+		}
 		return nil, fmt.Errorf("tiingo returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -190,7 +201,7 @@ func (t *TiingoReader) readParallel(ctx context.Context, symbols []string, start
 // getAPIKey retrieves the API key from context or the reader's stored key.
 func (t *TiingoReader) getAPIKey(ctx context.Context) string {
 	// Try to get from context first
-	if key := ctx.Value("apiKey"); key != nil {
+	if key := ctx.Value(APIKeyContextKey); key != nil {
 		if apiKey, ok := key.(string); ok && apiKey != "" {
 			return apiKey
 		}

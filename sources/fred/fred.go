@@ -119,7 +119,10 @@ func (f *FREDReader) ReadSingle(ctx context.Context, symbol string, start, end t
 
 	// Check status code
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("FRED API returned status %d (failed to read response body: %w)", resp.StatusCode, err)
+		}
 		return nil, fmt.Errorf("FRED API returned status %d: %s", resp.StatusCode, string(body))
 	}
 

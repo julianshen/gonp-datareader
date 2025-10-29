@@ -151,7 +151,7 @@ func TestParsedData_GetColumn_NonExistent(t *testing.T) {
 
 	// Getting non-existent column should return empty slice or nil
 	values := result.GetColumn("NonExistent")
-	if values != nil && len(values) != 0 {
+	if len(values) != 0 {
 		t.Errorf("Expected empty/nil for non-existent column, got %v", values)
 	}
 }

@@ -1,9 +1,6 @@
 run:
   timeout: 5m
   tests: true
-  skip-dirs:
-    - .cache
-    - vendor
 
 linters:
   enable:
@@ -37,6 +34,7 @@ linters-settings:
     enable-all: true
     disable:
       - shadow  # Too noisy for now
+      - fieldalignment  # Struct field ordering is a minor optimization
 
   revive:
     rules:
@@ -68,10 +66,20 @@ issues:
         - godox
       text: "TODO"
 
+    # Allow stuttering type names - they're part of the v1.0.0 API
+    - linters:
+        - revive
+      text: "stutters"
+
+  exclude-dirs:
+    - .cache
+    - vendor
+
   max-issues-per-linter: 0
   max-same-issues: 0
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   print-issued-lines: true
   print-linter-name: true

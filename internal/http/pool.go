@@ -26,7 +26,11 @@ func NewBufferPool() *BufferPool {
 
 // Get retrieves a buffer from the pool.
 func (p *BufferPool) Get() *bytes.Buffer {
-	buf := p.pool.Get().(*bytes.Buffer)
+	buf, ok := p.pool.Get().(*bytes.Buffer)
+	if !ok {
+		// This should never happen, but handle it gracefully
+		return bytes.NewBuffer(make([]byte, 0, 65536))
+	}
 	buf.Reset()
 	return buf
 }
