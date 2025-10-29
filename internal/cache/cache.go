@@ -44,6 +44,7 @@ func (c *FileCache) Get(key string) ([]byte, bool) {
 	filename := c.filename(key)
 
 	// Read file
+	// #nosec G304 - File path is constructed from hashed key, scoped to cache directory
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, false
@@ -57,8 +58,8 @@ func (c *FileCache) Get(key string) ([]byte, bool) {
 
 	// Check expiration (zero time means no expiration)
 	if !entry.ExpiresAt.IsZero() && time.Now().After(entry.ExpiresAt) {
-		// Expired, delete it
-		os.Remove(filename)
+		// Expired, delete it (ignore error as cleanup is best-effort)
+		_ = os.Remove(filename)
 		return nil, false
 	}
 
@@ -73,6 +74,7 @@ func (c *FileCache) Set(key string, value []byte, ttl time.Duration) error {
 	}
 
 	// Ensure cache directory exists
+	// #nosec G301 - Cache directory needs to be readable by owner, group, and others for flexibility
 	if err := os.MkdirAll(c.dir, 0755); err != nil {
 		return err
 	}
@@ -97,6 +99,7 @@ func (c *FileCache) Set(key string, value []byte, ttl time.Duration) error {
 
 	// Write to file
 	filename := c.filename(key)
+	// #nosec G306 - Cache files need to be readable by owner, group, and others for flexibility
 	return os.WriteFile(filename, data, 0644)
 }
 

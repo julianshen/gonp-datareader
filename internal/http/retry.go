@@ -103,12 +103,12 @@ func (c *RetryableClient) Do(req *http.Request) (*http.Response, error) {
 	if c.cache != nil && err == nil && resp != nil && resp.StatusCode == 200 && req.Method == "GET" {
 		// Read the response body
 		body, readErr := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close() // Ignore close error as we've already read the body
 
 		if readErr == nil {
-			// Store in cache
+			// Store in cache (ignore error as cache is best-effort)
 			cacheKey := req.URL.String()
-			c.cache.Set(cacheKey, body, c.cacheTTL)
+			_ = c.cache.Set(cacheKey, body, c.cacheTTL)
 
 			// Replace body with new reader for caller
 			resp.Body = io.NopCloser(bytes.NewReader(body))
