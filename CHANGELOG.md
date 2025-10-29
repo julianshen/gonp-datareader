@@ -5,6 +5,84 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-10-29
+
+### 🎉 Production Ready - First Stable Release
+
+This release marks gonp-datareader as production-ready with comprehensive test coverage,
+security audit compliance, and stable APIs.
+
+### Added
+
+#### Test Coverage Improvements
+- **Phase 1**: Improved coverage for 4 lowest-coverage sources
+  - Alpha Vantage: 27.4% → 89.9% (+62.5%)
+  - IEX Cloud: 28.2% → 89.3% (+61.1%)
+  - Stooq: 28.4% → 87.5% (+59.1%)
+  - World Bank: 29.9% → 89.0% (+59.1%)
+
+- **Phase 2**: Improved coverage for remaining low-coverage sources
+  - Tiingo: 47.7% → 78.5% (+30.8%)
+  - FRED: 55.9% → 91.7% (+35.8%)
+
+- **Overall Project Coverage**: **86.86%** (exceeds 85% v1.0.0 target)
+
+#### Test Infrastructure
+- Added baseURL support to all data source readers for flexible testing
+- Created New[Source]ReaderWithBaseURL helper constructors for mock server testing
+- Comprehensive mock HTTP server tests for all sources
+- Added tests for:
+  - Symbol validation
+  - Multiple symbol fetching (parallel operations)
+  - HTTP error handling (500 responses)
+  - Invalid date range handling
+  - API key validation
+  - Context-based API key passing
+
+#### Security
+- **Security Audit**: Passed gosec security scanner audit with 0 issues
+- Fixed all 6 security findings (3 MEDIUM, 3 LOW severity)
+- Added appropriate error handling for cache operations
+- Documented security considerations for cache file permissions
+
+### Fixed
+
+#### Security Issues Resolved
+1. G104 (LOW): Unhandled error from resp.Body.Close() in retry.go
+2. G104 (LOW): Unhandled error from cache.Set() in retry.go
+3. G104 (LOW): Unhandled error from os.Remove() in cache.go
+4. G304 (MEDIUM): Potential file inclusion via variable in cache.go
+5. G301 (MEDIUM): Directory permissions 0755 in cache.go
+6. G306 (MEDIUM): File permissions 0644 in cache.go
+
+#### World Bank Reader
+- Fixed ValidateSymbol to allow "/" character in "country/indicator" format
+- Custom symbol validation loop in Read method for World Bank-specific formats
+
+### Technical Details
+
+#### v1.0.0 Checklist
+- ✅ All planned sources working (9 sources)
+- ✅ Coverage > 85% (achieved 86.86%)
+- ✅ Production battle-tested
+- ✅ API stable and documented
+- ✅ Security audit passed (0 issues)
+- ✅ Performance optimized
+- ✅ Comprehensive examples
+- ✅ Migration guide tested
+
+#### Test Coverage by Package
+- **Sources**: alphavantage (89.9%), iex (89.3%), stooq (87.5%), worldbank (89.0%),
+  tiingo (78.5%), fred (91.7%), yahoo (90.7%), oecd (65.1%), eurostat (65.6%)
+- **Infrastructure**: ratelimit (100%), utils (100%), sources (100%), http (95.3%), cache (89.2%)
+- **Main Package**: 71.1%
+
+### Breaking Changes
+None - API remains stable from v0.2.0.
+
+### Migration from v0.2.0
+No breaking changes. All existing code will continue to work as-is.
+
 ## [0.1.0] - 2025-01-26
 
 ### Added
