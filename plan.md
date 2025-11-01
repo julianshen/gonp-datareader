@@ -893,19 +893,19 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 **Commit:** `feat: create TWSE reader structure` ✅ Done (commit: 087c642)
 
-### 15.2 ROC Calendar Conversion
-- ☐ Test: rocToGregorian converts "1141031" to 2025-10-31
-- ☐ Implement: rocToGregorian function (ROC Year + 1911)
-- ☐ Test: gregorianToROC converts 2025-10-31 to "1141031"
-- ☐ Implement: gregorianToROC function
-- ☐ Test: parseROCDate handles "YYYMMDD" format
-- ☐ Implement: parseROCDate with error handling
-- ☐ Test: formatROCDate creates correct ROC date string
-- ☐ Implement: formatROCDate function
-- ☐ Test: Edge cases (leap years, year boundaries)
-- ☐ Verify: Comprehensive date conversion
+### 15.2 ROC Calendar Conversion ✓
+- ☑ Test: rocToGregorian converts "1141031" to 2025-10-31
+- ☑ Implement: rocToGregorian function (ROC Year + 1911)
+- ☑ Test: gregorianToROC converts 2025-10-31 to "1141031"
+- ☑ Implement: gregorianToROC function
+- ☑ Test: parseROCDate handles "YYYMMDD" format
+- ☑ Implement: parseROCDate with error handling
+- ☑ Test: formatROCDate creates correct ROC date string
+- ☑ Implement: formatROCDate function
+- ☑ Test: Edge cases (leap years, year boundaries)
+- ☑ Verify: Comprehensive date conversion
 
-**Commit:** `feat: add ROC calendar conversion utilities`
+**Commit:** `feat: add ROC calendar conversion utilities` ✅ Done (commit: fd720d6)
 
 ### 15.3 TWSE URL Building
 - ☐ Test: buildDailyURL creates valid TWSE API URL
@@ -1011,18 +1011,18 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 ## Progress Tracking
 
 **Current Phase:** Phase 15 - TWSE (Taiwan Stock Exchange) Reader
-**Last Completed:** Phase 15.1 - TWSE Reader Structure ✅
-**Next Up:** Phase 15.2 - ROC Calendar Conversion
+**Last Completed:** Phase 15.2 - ROC Calendar Conversion ✅
+**Next Up:** Phase 15.3 - TWSE URL Building
 
 **Statistics:**
-- Total Commits: 84 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 1)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 37.5% (structure phase)
+- Total Commits: 86 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 3)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.2
+- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 69.2% (ROC conversion complete)
 - Data Sources: 9 (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
-  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phase 15.1 complete)
+  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.2 complete)
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+)
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
 - Production Ready: v0.2.0 complete, developing v0.3.0 with TWSE support
 - Next Release: v0.3.0 with TWSE support
-- Percentage: Phase 15 - 10% (1/10 sections complete)
+- Percentage: Phase 15 - 20% (2/10 sections complete)
