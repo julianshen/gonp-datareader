@@ -262,3 +262,96 @@ func TestRead_TWSE(t *testing.T) {
 		}
 	}
 }
+
+// TestDataReader_FinMind tests FinMind factory registration
+func TestDataReader_FinMind(t *testing.T) {
+	reader, err := datareader.DataReader("finmind", nil)
+	if err != nil {
+		t.Fatalf("DataReader('finmind') error = %v", err)
+	}
+
+	if reader == nil {
+		t.Fatal("DataReader('finmind') returned nil reader")
+	}
+
+	// Check name
+	expectedName := "FinMind"
+	if reader.Name() != expectedName {
+		t.Errorf("Expected name %q, got %q", expectedName, reader.Name())
+	}
+
+	// Check source
+	expectedSource := "finmind"
+	if reader.Source() != expectedSource {
+		t.Errorf("Expected source %q, got %q", expectedSource, reader.Source())
+	}
+
+	// Test symbol validation
+	err = reader.ValidateSymbol("2330")
+	if err != nil {
+		t.Errorf("ValidateSymbol('2330') should not error: %v", err)
+	}
+
+	err = reader.ValidateSymbol("")
+	if err == nil {
+		t.Error("ValidateSymbol('') should error for empty symbol")
+	}
+}
+
+// TestDataReader_FinMind_WithAPIKey tests FinMind with API key
+func TestDataReader_FinMind_WithAPIKey(t *testing.T) {
+	opts := &datareader.Options{
+		APIKey: "test-token-123",
+	}
+
+	reader, err := datareader.DataReader("finmind", opts)
+	if err != nil {
+		t.Fatalf("DataReader('finmind') with API key error = %v", err)
+	}
+
+	if reader == nil {
+		t.Fatal("DataReader('finmind') returned nil reader")
+	}
+
+	if reader.Name() != "FinMind" {
+		t.Errorf("Expected name 'FinMind', got %q", reader.Name())
+	}
+}
+
+// TestListSources_IncludesFinMind tests that FinMind is in the sources list
+func TestListSources_IncludesFinMind(t *testing.T) {
+	sources := datareader.ListSources()
+
+	found := false
+	for _, source := range sources {
+		if source == "finmind" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("ListSources() should include 'finmind'")
+	}
+}
+
+// TestRead_FinMind tests the convenience function with FinMind
+func TestRead_FinMind(t *testing.T) {
+	ctx := context.Background()
+	start := time.Date(2020, 4, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 30, 0, 0, 0, 0, time.UTC)
+
+	// This will likely fail without network or if the symbol doesn't exist
+	// but we're testing that the factory registration works
+	_, err := datareader.Read(ctx, "2330", "finmind", start, end, nil)
+
+	// Error is acceptable (network issues, rate limiting, etc.)
+	// We just want to ensure no "unknown source" error
+	if err != nil {
+		t.Logf("Read() returned error (may be expected): %v", err)
+		// Make sure it's not an "unknown source" error
+		if err.Error() == "unknown data source: finmind" {
+			t.Errorf("Read() failed with unknown source error: %v", err)
+		}
+	}
+}

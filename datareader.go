@@ -72,6 +72,7 @@
 //   - oecd: OECD - Economic indicators and statistics (no API key required)
 //   - eurostat: Eurostat - European statistics (no API key required)
 //   - twse: Taiwan Stock Exchange - Taiwan stock market data (no API key required)
+//   - finmind: FinMind - Taiwan and international financial data (optional API key for higher rate limits)
 //
 // Use ListSources() to get a list of all available sources at runtime.
 //
@@ -121,6 +122,7 @@ import (
 	"github.com/julianshen/gonp-datareader/sources"
 	"github.com/julianshen/gonp-datareader/sources/alphavantage"
 	"github.com/julianshen/gonp-datareader/sources/eurostat"
+	"github.com/julianshen/gonp-datareader/sources/finmind"
 	"github.com/julianshen/gonp-datareader/sources/fred"
 	"github.com/julianshen/gonp-datareader/sources/iex"
 	"github.com/julianshen/gonp-datareader/sources/oecd"
@@ -223,6 +225,11 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return eurostat.NewEurostatReader(clientOpts), nil
 	case "twse":
 		return twse.NewTWSEReader(clientOpts), nil
+	case "finmind":
+		if apiKey != "" {
+			return finmind.NewFinMindReaderWithToken(clientOpts, apiKey), nil
+		}
+		return finmind.NewFinMindReader(clientOpts), nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -317,5 +324,6 @@ func ListSources() []string {
 		"oecd",
 		"eurostat",
 		"twse",
+		"finmind",
 	}
 }
