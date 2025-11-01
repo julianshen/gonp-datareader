@@ -24,6 +24,8 @@ package finmind
 
 import (
 	"context"
+	"fmt"
+	"net/url"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -132,6 +134,34 @@ func (f *FinMindReader) SetToken(token string) {
 //	reader.SetDataset("TaiwanStockDividend")
 func (f *FinMindReader) SetDataset(dataset string) {
 	f.dataset = dataset
+}
+
+// BuildURL constructs the API URL with query parameters for FinMind API.
+//
+// The URL includes the following query parameters:
+//   - dataset: The dataset name (e.g., "TaiwanStockPrice")
+//   - data_id: The symbol/stock code
+//   - start_date: Start date in YYYY-MM-DD format
+//   - end_date: End date in YYYY-MM-DD format
+//
+// Example output:
+//
+//	https://api.finmindtrade.com/api/v4/data?dataset=TaiwanStockPrice&data_id=2330&start_date=2020-04-02&end_date=2020-04-12
+func (f *FinMindReader) BuildURL(symbol string, start, end time.Time) string {
+	// Build query parameters
+	params := url.Values{}
+	params.Set("dataset", f.dataset)
+	params.Set("data_id", symbol)
+	params.Set("start_date", formatDate(start))
+	params.Set("end_date", formatDate(end))
+
+	// Construct full URL
+	return fmt.Sprintf("%s?%s", f.endpoint, params.Encode())
+}
+
+// formatDate converts a time.Time to YYYY-MM-DD format for FinMind API.
+func formatDate(t time.Time) string {
+	return t.Format("2006-01-02")
 }
 
 // ReadSingle fetches data for a single symbol from FinMind.
