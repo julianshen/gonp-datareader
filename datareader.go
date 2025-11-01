@@ -71,6 +71,7 @@
 //   - tiingo: Tiingo - Stock market data with high-quality fundamentals (requires API token)
 //   - oecd: OECD - Economic indicators and statistics (no API key required)
 //   - eurostat: Eurostat - European statistics (no API key required)
+//   - twse: Taiwan Stock Exchange - Taiwan stock market data (no API key required)
 //
 // Use ListSources() to get a list of all available sources at runtime.
 //
@@ -125,6 +126,7 @@ import (
 	"github.com/julianshen/gonp-datareader/sources/oecd"
 	"github.com/julianshen/gonp-datareader/sources/stooq"
 	"github.com/julianshen/gonp-datareader/sources/tiingo"
+	"github.com/julianshen/gonp-datareader/sources/twse"
 	"github.com/julianshen/gonp-datareader/sources/worldbank"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
@@ -147,6 +149,7 @@ var (
 //   - "iex": IEX Cloud - professional stock market data (API token required)
 //   - "oecd": OECD - economic indicators and statistics (no API key required)
 //   - "eurostat": Eurostat - European statistics (no API key required)
+//   - "twse": Taiwan Stock Exchange - Taiwan stock market data (no API key required)
 //
 // The opts parameter provides configuration for the reader. If nil, default options are used.
 // See the Options struct for available configuration settings.
@@ -218,6 +221,8 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return oecd.NewOECDReader(clientOpts), nil
 	case "eurostat":
 		return eurostat.NewEurostatReader(clientOpts), nil
+	case "twse":
+		return twse.NewTWSEReader(clientOpts), nil
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnknownSource, source)
 	}
@@ -311,5 +316,6 @@ func ListSources() []string {
 		"tiingo",
 		"oecd",
 		"eurostat",
+		"twse",
 	}
 }

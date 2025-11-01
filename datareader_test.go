@@ -189,3 +189,76 @@ func TestDataReader_ImplementsInterface(t *testing.T) {
 		t.Error("ValidateSymbol() should error for empty symbol")
 	}
 }
+
+// TestDataReader_TWSE tests TWSE factory registration
+func TestDataReader_TWSE(t *testing.T) {
+	reader, err := datareader.DataReader("twse", nil)
+	if err != nil {
+		t.Fatalf("DataReader('twse') error = %v", err)
+	}
+
+	if reader == nil {
+		t.Fatal("DataReader('twse') returned nil reader")
+	}
+
+	// Check name
+	expectedName := "Taiwan Stock Exchange"
+	if reader.Name() != expectedName {
+		t.Errorf("Expected name %q, got %q", expectedName, reader.Name())
+	}
+
+	// Check source
+	expectedSource := "twse"
+	if reader.Source() != expectedSource {
+		t.Errorf("Expected source %q, got %q", expectedSource, reader.Source())
+	}
+
+	// Test symbol validation
+	err = reader.ValidateSymbol("2330")
+	if err != nil {
+		t.Errorf("ValidateSymbol('2330') should not error: %v", err)
+	}
+
+	err = reader.ValidateSymbol("")
+	if err == nil {
+		t.Error("ValidateSymbol('') should error for empty symbol")
+	}
+}
+
+// TestListSources_IncludesTWSE tests that TWSE is in the sources list
+func TestListSources_IncludesTWSE(t *testing.T) {
+	sources := datareader.ListSources()
+
+	found := false
+	for _, source := range sources {
+		if source == "twse" {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Error("ListSources() should include 'twse'")
+	}
+}
+
+// TestRead_TWSE tests the convenience function with TWSE
+func TestRead_TWSE(t *testing.T) {
+	ctx := context.Background()
+	start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+	// This will likely fail without network or if the symbol doesn't exist
+	// but we're testing that the factory registration works
+	_, err := datareader.Read(ctx, "2330", "twse", start, end, nil)
+
+	// Error is acceptable (network issues, rate limiting, etc.)
+	// We just want to ensure no "unknown source" error
+	if err != nil {
+		t.Logf("Read() returned error (may be expected): %v", err)
+		// Make sure it's not an "unknown source" error
+		if err.Error() == "unknown data source: twse" {
+			t.Errorf("Read() failed with unknown source error: %v", err)
+		}
+	}
+}
