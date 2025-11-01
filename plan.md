@@ -907,15 +907,15 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 **Commit:** `feat: add ROC calendar conversion utilities` ✅ Done (commit: fd720d6)
 
-### 15.3 TWSE URL Building
-- ☐ Test: buildDailyURL creates valid TWSE API URL
-- ☐ Implement: buildDailyURL for STOCK_DAY_ALL endpoint
-- ☐ Test: buildIndexURL creates valid index endpoint URL
-- ☐ Implement: buildIndexURL for MI_INDEX endpoint
-- ☐ Test: URLs use correct base URL
-- ☐ Verify: URL constants and formatting
+### 15.3 TWSE URL Building ✓
+- ☑ Test: buildDailyURL creates valid TWSE API URL
+- ☑ Implement: buildDailyURL for STOCK_DAY_ALL endpoint
+- ☑ Test: buildIndexURL creates valid index endpoint URL
+- ☑ Implement: buildIndexURL for MI_INDEX endpoint
+- ☑ Test: URLs use correct base URL
+- ☑ Verify: URL constants and formatting
 
-**Commit:** `feat: implement TWSE URL builders`
+**Commit:** `feat: implement TWSE URL builders` ✅ Done (commit: 63dd108)
 
 ### 15.4 TWSE JSON Parser
 - ☐ Test: parseDailyStockJSON parses valid TWSE response
@@ -1011,18 +1011,18 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 ## Progress Tracking
 
 **Current Phase:** Phase 15 - TWSE (Taiwan Stock Exchange) Reader
-**Last Completed:** Phase 15.2 - ROC Calendar Conversion ✅
-**Next Up:** Phase 15.3 - TWSE URL Building
+**Last Completed:** Phase 15.3 - TWSE URL Building ✅
+**Next Up:** Phase 15.4 - TWSE JSON Parser
 
 **Statistics:**
-- Total Commits: 86 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 3)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.2
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 69.2% (ROC conversion complete)
+- Total Commits: 88 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 5)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.3
+- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 73.9% (URL building complete)
 - Data Sources: 9 (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
-  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.2 complete)
+  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.3 complete)
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+)
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
 - Production Ready: v0.2.0 complete, developing v0.3.0 with TWSE support
 - Next Release: v0.3.0 with TWSE support
-- Percentage: Phase 15 - 20% (2/10 sections complete)
+- Percentage: Phase 15 - 30% (3/10 sections complete)
