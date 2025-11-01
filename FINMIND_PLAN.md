@@ -124,51 +124,39 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### Phase 16.3: Dataset Parameter Handling ⏳
+### Phase 16.3: Dataset Parameter Handling ✅
 
 **Goal:** Implement flexible dataset selection and parameter building.
 
-**Tasks:**
-- ☐ Test: BuildParams creates correct query parameters
-- ☐ Implement: BuildParams function for API requests
-- ☐ Test: TaiwanStockPrice dataset parameters
-- ☐ Implement: Taiwan stock price dataset support
-- ☐ Test: Date format conversion (time.Time → YYYY-MM-DD)
-- ☐ Implement: Date formatting utilities
-- ☐ Test: data_id parameter for symbol
-- ☐ Implement: Symbol to data_id mapping
+**Status:** Merged into Phase 16.2 - BuildURL() handles all dataset parameters.
 
-**Dataset Structure:**
-```go
-type DatasetParams struct {
-    Dataset   string // "TaiwanStockPrice", "USStockPrice", etc.
-    DataID    string // Stock symbol/ID
-    StartDate string // YYYY-MM-DD
-    EndDate   string // YYYY-MM-DD
-}
-```
+**Completed Tasks:**
+- ✅ BuildURL creates correct query parameters (Phase 16.2)
+- ✅ Taiwan stock price dataset support (default)
+- ✅ Date format conversion (formatDate helper in Phase 16.2)
+- ✅ Symbol to data_id mapping (BuildURL in Phase 16.2)
 
-**Commit:** `feat: implement dataset parameter handling`
+**Note:** This phase was completed as part of Phase 16.2 implementation.
 
 ---
 
-### Phase 16.4: JSON Response Parser ⏳
+### Phase 16.4: JSON Response Parser ✅
 
 **Goal:** Parse FinMind JSON responses into structured data.
 
 **Tasks:**
-- ☐ Test: ParseFinMindResponse parses valid JSON
-- ☐ Implement: JSON unmarshaling for FinMind format
-- ☐ Test: Extract stock_id, date, OHLCV fields
-- ☐ Implement: Field extraction from response data
-- ☐ Test: Handle Trading_Volume, Trading_money fields
-- ☐ Implement: Volume and money parsing
-- ☐ Test: Convert numeric fields correctly
-- ☐ Implement: Type conversion for all numeric fields
-- ☐ Test: Handle empty data array
-- ☐ Implement: Empty response handling
+- ✅ Test: ParseFinMindResponse parses valid JSON
+- ✅ Implement: JSON unmarshaling for FinMind format
+- ✅ Test: Extract stock_id, date, OHLCV fields
+- ✅ Implement: Field extraction from response data
+- ✅ Test: Handle Trading_Volume, Trading_money, Trading_turnover fields
+- ✅ Implement: Volume and money parsing
+- ✅ Test: Convert numeric fields correctly (formatFloat helper)
+- ✅ Implement: Type conversion for all numeric fields
+- ✅ Test: Handle empty data array
+- ✅ Implement: Empty response handling
 
-**Response Structures:**
+**Structures Implemented:**
 ```go
 type FinMindResponse struct {
     Data []FinMindStockData `json:"data"`
@@ -188,19 +176,19 @@ type FinMindStockData struct {
 }
 
 type ParsedData struct {
-    Symbol       string
-    Date         []time.Time
-    Open         []float64
-    High         []float64
-    Low          []float64
-    Close        []float64
-    Volume       []int64
-    Amount       []int64  // Trading money
-    Transactions []int64  // Trading turnover
+    Symbol  string
+    Columns []string
+    Rows    []map[string]string
 }
 ```
 
-**Commit:** `feat: implement FinMind JSON parser`
+**Files created:**
+- `sources/finmind/parser.go` (116 lines)
+- `sources/finmind/parser_test.go` (157 lines)
+
+**Coverage:** 91.4%
+
+**Commit:** `feat: implement Phase 16.4 - FinMind JSON response parser` (36a429e)
 
 ---
 
