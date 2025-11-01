@@ -1,6 +1,7 @@
 package twse
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"time"
@@ -103,4 +104,159 @@ func parseROCDate(rocDate string) (time.Time, error) {
 // This is an alias for gregorianToROC for consistency with common naming patterns.
 func formatROCDate(date time.Time) string {
 	return gregorianToROC(date)
+}
+
+// TWSEStockData represents a single stock's data in the TWSE API response.
+//
+// All numeric fields are returned as strings by the API and need to be
+// parsed to appropriate numeric types.
+type TWSEStockData struct {
+	Date         string `json:"Date"`         // ROC date format "YYYMMDD"
+	Code         string `json:"Code"`         // Stock symbol (e.g., "2330")
+	Name         string `json:"Name"`         // Company name in Traditional Chinese
+	TradeVolume  string `json:"TradeVolume"`  // Number of shares traded
+	TradeValue   string `json:"TradeValue"`   // Total trade value
+	OpeningPrice string `json:"OpeningPrice"` // Opening price
+	HighestPrice string `json:"HighestPrice"` // Daily high
+	LowestPrice  string `json:"LowestPrice"`  // Daily low
+	ClosingPrice string `json:"ClosingPrice"` // Closing price
+	Change       string `json:"Change"`       // Price change
+	Transaction  string `json:"Transaction"`  // Number of transactions
+}
+
+// ParsedData represents parsed stock data ready for use.
+//
+// This structure contains typed data with time.Time dates and numeric values
+// converted from the API's string format.
+type ParsedData struct {
+	Symbol       string      // Stock symbol
+	Name         string      // Company name
+	Date         []time.Time // Trading dates
+	Open         []float64   // Opening prices
+	High         []float64   // Highest prices
+	Low          []float64   // Lowest prices
+	Close        []float64   // Closing prices
+	Volume       []int64     // Trading volumes
+	Transactions []int64     // Transaction counts
+	Change       []float64   // Price changes
+}
+
+// parseDailyStockJSON parses the TWSE daily stock data JSON response.
+//
+// The TWSE API returns an array of stock data objects where all numeric
+// values are represented as strings. This function:
+//   - Parses the JSON array
+//   - Converts ROC dates to time.Time
+//   - Converts string numbers to appropriate numeric types
+//   - Handles missing/empty values
+//
+// Example input:
+//
+//	[{
+//	  "Date": "1141031",
+//	  "Code": "2330",
+//	  "Name": "台積電",
+//	  "TradeVolume": "55956524",
+//	  "OpeningPrice": "64.60",
+//	  "HighestPrice": "64.80",
+//	  "LowestPrice": "64.40",
+//	  "ClosingPrice": "64.75",
+//	  "Change": "0.3500",
+//	  "Transaction": "44302"
+//	}]
+func parseDailyStockJSON(data []byte) ([]TWSEStockData, error) {
+	var stocks []TWSEStockData
+	if err := json.Unmarshal(data, &stocks); err != nil {
+		return nil, fmt.Errorf("unmarshal JSON: %w", err)
+	}
+	return stocks, nil
+}
+
+// parseStockData converts a single TWSEStockData to ParsedData.
+//
+// This function handles:
+//   - ROC date to time.Time conversion
+//   - String to float64 conversion for prices
+//   - String to int64 conversion for volumes
+//   - Empty/missing value handling
+func parseStockData(stock TWSEStockData) (*ParsedData, error) {
+	// Parse date
+	date, err := parseROCDate(stock.Date)
+	if err != nil {
+		return nil, fmt.Errorf("parse date %q: %w", stock.Date, err)
+	}
+
+	// Parse prices
+	open, err := parseFloat(stock.OpeningPrice)
+	if err != nil {
+		return nil, fmt.Errorf("parse opening price %q: %w", stock.OpeningPrice, err)
+	}
+
+	high, err := parseFloat(stock.HighestPrice)
+	if err != nil {
+		return nil, fmt.Errorf("parse highest price %q: %w", stock.HighestPrice, err)
+	}
+
+	low, err := parseFloat(stock.LowestPrice)
+	if err != nil {
+		return nil, fmt.Errorf("parse lowest price %q: %w", stock.LowestPrice, err)
+	}
+
+	close, err := parseFloat(stock.ClosingPrice)
+	if err != nil {
+		return nil, fmt.Errorf("parse closing price %q: %w", stock.ClosingPrice, err)
+	}
+
+	change, err := parseFloat(stock.Change)
+	if err != nil {
+		return nil, fmt.Errorf("parse change %q: %w", stock.Change, err)
+	}
+
+	// Parse volumes
+	volume, err := parseInt(stock.TradeVolume)
+	if err != nil {
+		return nil, fmt.Errorf("parse trade volume %q: %w", stock.TradeVolume, err)
+	}
+
+	transactions, err := parseInt(stock.Transaction)
+	if err != nil {
+		return nil, fmt.Errorf("parse transactions %q: %w", stock.Transaction, err)
+	}
+
+	return &ParsedData{
+		Symbol:       stock.Code,
+		Name:         stock.Name,
+		Date:         []time.Time{date},
+		Open:         []float64{open},
+		High:         []float64{high},
+		Low:          []float64{low},
+		Close:        []float64{close},
+		Volume:       []int64{volume},
+		Transactions: []int64{transactions},
+		Change:       []float64{change},
+	}, nil
+}
+
+// parseFloat converts a string to float64, handling empty strings.
+func parseFloat(s string) (float64, error) {
+	if s == "" {
+		return 0, nil
+	}
+	f, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid float: %w", err)
+	}
+	return f, nil
+}
+
+// parseInt converts a string to int64, handling empty strings.
+func parseInt(s string) (int64, error) {
+	if s == "" {
+		return 0, nil
+	}
+	i, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid int: %w", err)
+	}
+	return i, nil
 }

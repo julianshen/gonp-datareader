@@ -410,3 +410,348 @@ func TestROCDateEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+// TestParseDailyStockJSON tests parsing TWSE daily stock JSON response
+func TestParseDailyStockJSON(t *testing.T) {
+	tests := []struct {
+		name    string
+		json    string
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "valid single stock",
+			json: `[{
+				"Date": "1141031",
+				"Code": "2330",
+				"Name": "台積電",
+				"TradeVolume": "55956524",
+				"TradeValue": "3616991558",
+				"OpeningPrice": "64.60",
+				"HighestPrice": "64.80",
+				"LowestPrice": "64.40",
+				"ClosingPrice": "64.75",
+				"Change": "0.3500",
+				"Transaction": "44302"
+			}]`,
+			want:    1,
+			wantErr: false,
+		},
+		{
+			name: "valid multiple stocks",
+			json: `[
+				{
+					"Date": "1141031",
+					"Code": "2330",
+					"Name": "台積電",
+					"TradeVolume": "55956524",
+					"OpeningPrice": "64.60",
+					"HighestPrice": "64.80",
+					"LowestPrice": "64.40",
+					"ClosingPrice": "64.75",
+					"Change": "0.3500",
+					"Transaction": "44302"
+				},
+				{
+					"Date": "1141031",
+					"Code": "2317",
+					"Name": "鴻海",
+					"TradeVolume": "12345678",
+					"OpeningPrice": "100.00",
+					"HighestPrice": "102.50",
+					"LowestPrice": "99.00",
+					"ClosingPrice": "101.50",
+					"Change": "1.5000",
+					"Transaction": "10000"
+				}
+			]`,
+			want:    2,
+			wantErr: false,
+		},
+		{
+			name:    "empty array",
+			json:    `[]`,
+			want:    0,
+			wantErr: false,
+		},
+		{
+			name:    "invalid JSON",
+			json:    `invalid json`,
+			want:    0,
+			wantErr: true,
+		},
+		{
+			name:    "empty string",
+			json:    ``,
+			want:    0,
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseDailyStockJSON([]byte(tt.json))
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseDailyStockJSON() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && len(got) != tt.want {
+				t.Errorf("parseDailyStockJSON() got %d stocks, want %d", len(got), tt.want)
+			}
+		})
+	}
+}
+
+// TestParseDailyStockJSON_FieldExtraction tests that all fields are extracted correctly
+func TestParseDailyStockJSON_FieldExtraction(t *testing.T) {
+	json := `[{
+		"Date": "1141031",
+		"Code": "2330",
+		"Name": "台積電",
+		"TradeVolume": "55956524",
+		"TradeValue": "3616991558",
+		"OpeningPrice": "64.60",
+		"HighestPrice": "64.80",
+		"LowestPrice": "64.40",
+		"ClosingPrice": "64.75",
+		"Change": "0.3500",
+		"Transaction": "44302"
+	}]`
+
+	stocks, err := parseDailyStockJSON([]byte(json))
+	if err != nil {
+		t.Fatalf("parseDailyStockJSON() error = %v", err)
+	}
+
+	if len(stocks) != 1 {
+		t.Fatalf("parseDailyStockJSON() got %d stocks, want 1", len(stocks))
+	}
+
+	stock := stocks[0]
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"Date", stock.Date, "1141031"},
+		{"Code", stock.Code, "2330"},
+		{"Name", stock.Name, "台積電"},
+		{"TradeVolume", stock.TradeVolume, "55956524"},
+		{"TradeValue", stock.TradeValue, "3616991558"},
+		{"OpeningPrice", stock.OpeningPrice, "64.60"},
+		{"HighestPrice", stock.HighestPrice, "64.80"},
+		{"LowestPrice", stock.LowestPrice, "64.40"},
+		{"ClosingPrice", stock.ClosingPrice, "64.75"},
+		{"Change", stock.Change, "0.3500"},
+		{"Transaction", stock.Transaction, "44302"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %q, want %q", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestParseStockData tests converting TWSEStockData to ParsedData
+func TestParseStockData(t *testing.T) {
+	tests := []struct {
+		name    string
+		stock   TWSEStockData
+		wantErr bool
+		check   func(*testing.T, *ParsedData)
+	}{
+		{
+			name: "valid stock data",
+			stock: TWSEStockData{
+				Date:         "1141031",
+				Code:         "2330",
+				Name:         "台積電",
+				TradeVolume:  "55956524",
+				OpeningPrice: "64.60",
+				HighestPrice: "64.80",
+				LowestPrice:  "64.40",
+				ClosingPrice: "64.75",
+				Change:       "0.3500",
+				Transaction:  "44302",
+			},
+			wantErr: false,
+			check: func(t *testing.T, p *ParsedData) {
+				if p.Symbol != "2330" {
+					t.Errorf("Symbol = %q, want %q", p.Symbol, "2330")
+				}
+				if p.Name != "台積電" {
+					t.Errorf("Name = %q, want %q", p.Name, "台積電")
+				}
+				if len(p.Date) != 1 {
+					t.Errorf("Date length = %d, want 1", len(p.Date))
+				}
+				if len(p.Open) != 1 || p.Open[0] != 64.60 {
+					t.Errorf("Open = %v, want [64.60]", p.Open)
+				}
+				if len(p.High) != 1 || p.High[0] != 64.80 {
+					t.Errorf("High = %v, want [64.80]", p.High)
+				}
+				if len(p.Low) != 1 || p.Low[0] != 64.40 {
+					t.Errorf("Low = %v, want [64.40]", p.Low)
+				}
+				if len(p.Close) != 1 || p.Close[0] != 64.75 {
+					t.Errorf("Close = %v, want [64.75]", p.Close)
+				}
+				if len(p.Volume) != 1 || p.Volume[0] != 55956524 {
+					t.Errorf("Volume = %v, want [55956524]", p.Volume)
+				}
+				if len(p.Transactions) != 1 || p.Transactions[0] != 44302 {
+					t.Errorf("Transactions = %v, want [44302]", p.Transactions)
+				}
+				if len(p.Change) != 1 || p.Change[0] != 0.3500 {
+					t.Errorf("Change = %v, want [0.3500]", p.Change)
+				}
+			},
+		},
+		{
+			name: "empty values",
+			stock: TWSEStockData{
+				Date:         "1141031",
+				Code:         "2330",
+				Name:         "台積電",
+				TradeVolume:  "",
+				OpeningPrice: "",
+				HighestPrice: "",
+				LowestPrice:  "",
+				ClosingPrice: "",
+				Change:       "",
+				Transaction:  "",
+			},
+			wantErr: false,
+			check: func(t *testing.T, p *ParsedData) {
+				if p.Open[0] != 0 {
+					t.Errorf("Empty OpeningPrice should be 0, got %v", p.Open[0])
+				}
+				if p.Volume[0] != 0 {
+					t.Errorf("Empty TradeVolume should be 0, got %v", p.Volume[0])
+				}
+			},
+		},
+		{
+			name: "invalid date",
+			stock: TWSEStockData{
+				Date:         "invalid",
+				Code:         "2330",
+				OpeningPrice: "64.60",
+				HighestPrice: "64.80",
+				LowestPrice:  "64.40",
+				ClosingPrice: "64.75",
+				TradeVolume:  "1000",
+				Transaction:  "100",
+				Change:       "0.5",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid price",
+			stock: TWSEStockData{
+				Date:         "1141031",
+				Code:         "2330",
+				OpeningPrice: "invalid",
+				HighestPrice: "64.80",
+				LowestPrice:  "64.40",
+				ClosingPrice: "64.75",
+				TradeVolume:  "1000",
+				Transaction:  "100",
+				Change:       "0.5",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid volume",
+			stock: TWSEStockData{
+				Date:         "1141031",
+				Code:         "2330",
+				OpeningPrice: "64.60",
+				HighestPrice: "64.80",
+				LowestPrice:  "64.40",
+				ClosingPrice: "64.75",
+				TradeVolume:  "invalid",
+				Transaction:  "100",
+				Change:       "0.5",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseStockData(tt.stock)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseStockData() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && tt.check != nil {
+				tt.check(t, got)
+			}
+		})
+	}
+}
+
+// TestParseFloat tests string to float conversion
+func TestParseFloat(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    float64
+		wantErr bool
+	}{
+		{"valid integer", "100", 100.0, false},
+		{"valid decimal", "64.75", 64.75, false},
+		{"valid negative", "-10.5", -10.5, false},
+		{"empty string", "", 0, false},
+		{"invalid string", "abc", 0, true},
+		{"invalid format", "12.34.56", 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseFloat(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseFloat(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("parseFloat(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+// TestParseInt tests string to int conversion
+func TestParseInt(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    int64
+		wantErr bool
+	}{
+		{"valid integer", "12345", 12345, false},
+		{"valid large number", "55956524", 55956524, false},
+		{"empty string", "", 0, false},
+		{"invalid string", "abc", 0, true},
+		{"decimal number", "12.34", 0, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := parseInt(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("parseInt(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got != tt.want {
+				t.Errorf("parseInt(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
