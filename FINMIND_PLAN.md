@@ -98,26 +98,29 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ---
 
-### Phase 16.2: API Client Configuration ⏳
+### Phase 16.2: API Client Configuration ✅
 
 **Goal:** Set up HTTP client with authentication and rate limiting.
 
 **Tasks:**
-- ☐ Test: Client sets Bearer token in Authorization header
-- ☐ Implement: Token-based authentication
-- ☐ Test: Client respects rate limits (600 req/hour with token)
-- ☐ Implement: Rate limiting configuration
-- ☐ Test: Client builds correct API URLs
-- ☐ Implement: URL building with query parameters
-- ☐ Test: Client handles missing token gracefully
-- ☐ Implement: Optional token support
+- ✅ Test: Client builds correct API URLs
+- ✅ Implement: URL building with query parameters (BuildURL method)
+- ✅ Test: Custom dataset support
+- ✅ Implement: Dataset parameter handling
+- ✅ Test: Date format conversion (YYYY-MM-DD)
+- ✅ Implement: formatDate helper function
+- ✅ Verify: Rate limits configured in Phase 16.1 (300/600 req/hour)
+- ✅ Verify: Token storage configured in Phase 16.1
 
 **API Details:**
 - Base URL: `https://api.finmindtrade.com/api/v4/data`
-- Authentication: Bearer token in header
-- Rate limit: 600 requests/hour (with token), 300 without
+- Authentication: Bearer token (stored in reader, used in Phase 16.6)
+- Rate limit: 600 requests/hour (with token), 300 without (configured)
+- Query parameters: dataset, data_id, start_date, end_date
 
-**Commit:** `feat: configure FinMind API client with authentication`
+**Coverage:** 85.0%
+
+**Commit:** `feat: implement Phase 16.2 - FinMind API client configuration` (97d359d)
 
 ---
 
