@@ -31,6 +31,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -47,6 +48,11 @@ const (
 
 	// indexEndpoint provides market indices data
 	indexEndpoint = "/exchangeReport/MI_INDEX"
+)
+
+var (
+	// twseSymbolPattern matches valid Taiwan stock codes (4 or 6 digits)
+	twseSymbolPattern = regexp.MustCompile(`^[0-9]{4}$|^[0-9]{6}$`)
 )
 
 // TWSEReader fetches data from Taiwan Stock Exchange (TWSE).
@@ -90,11 +96,20 @@ func (t *TWSEReader) Name() string {
 //   - ETFs: 4 digits starting with 00 (e.g., "0050")
 //   - Warrants: 6 digits
 //
-// This implementation delegates to the base symbol validation which checks
-// for empty strings and invalid characters. Additional TWSE-specific
-// validation will be added as needed.
+// Returns an error if the symbol is empty, contains non-numeric characters,
+// or has an invalid length (not 4 or 6 digits).
 func (t *TWSEReader) ValidateSymbol(symbol string) error {
-	return t.BaseSource.ValidateSymbol(symbol)
+	// First check basic validation (empty, whitespace)
+	if err := t.BaseSource.ValidateSymbol(symbol); err != nil {
+		return err
+	}
+
+	// Check TWSE-specific format: 4 or 6 digits only
+	if !twseSymbolPattern.MatchString(symbol) {
+		return fmt.Errorf("invalid Taiwan stock code format: %q (must be 4 or 6 digits)", symbol)
+	}
+
+	return nil
 }
 
 // BuildURL constructs the TWSE API URL for fetching daily stock data.

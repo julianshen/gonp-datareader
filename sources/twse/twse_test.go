@@ -602,3 +602,270 @@ func TestTWSEReader_Read_ValidatesSymbols(t *testing.T) {
 		})
 	}
 }
+
+// TestTWSEReader_ValidateSymbol_Enhanced tests enhanced Taiwan stock code validation
+func TestTWSEReader_ValidateSymbol_Enhanced(t *testing.T) {
+	reader := NewTWSEReader(nil)
+
+	tests := []struct {
+		name    string
+		symbol  string
+		wantErr bool
+	}{
+		// Valid codes
+		{
+			name:    "valid 4-digit code - TSMC",
+			symbol:  "2330",
+			wantErr: false,
+		},
+		{
+			name:    "valid 4-digit code with leading zero - 0050 ETF",
+			symbol:  "0050",
+			wantErr: false,
+		},
+		{
+			name:    "valid 6-digit warrant code",
+			symbol:  "123456",
+			wantErr: false,
+		},
+		// Invalid codes
+		{
+			name:    "empty symbol",
+			symbol:  "",
+			wantErr: true,
+		},
+		{
+			name:    "too short - 3 digits",
+			symbol:  "233",
+			wantErr: true,
+		},
+		{
+			name:    "too long - 7 digits",
+			symbol:  "2330123",
+			wantErr: true,
+		},
+		{
+			name:    "contains letters",
+			symbol:  "2330A",
+			wantErr: true,
+		},
+		{
+			name:    "contains special characters",
+			symbol:  "2330-",
+			wantErr: true,
+		},
+		{
+			name:    "contains spaces",
+			symbol:  "23 30",
+			wantErr: true,
+		},
+		{
+			name:    "5-digit code (invalid length)",
+			symbol:  "23301",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := reader.ValidateSymbol(tt.symbol)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateSymbol(%q) error = %v, wantErr %v", tt.symbol, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+// TestTWSEReader_ReadSingle_HTTPErrors tests HTTP error handling
+func TestTWSEReader_ReadSingle_HTTPErrors(t *testing.T) {
+	tests := []struct {
+		name           string
+		statusCode     int
+		responseBody   string
+		wantErrContain string
+	}{
+		{
+			name:           "404 Not Found",
+			statusCode:     404,
+			responseBody:   "Not Found",
+			wantErrContain: "HTTP 404",
+		},
+		{
+			name:           "500 Internal Server Error",
+			statusCode:     500,
+			responseBody:   "Internal Server Error",
+			wantErrContain: "HTTP 500",
+		},
+		{
+			name:           "503 Service Unavailable",
+			statusCode:     503,
+			responseBody:   "Service Unavailable",
+			wantErrContain: "HTTP 503",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock server that returns error status
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
+
+			reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+			ctx := context.Background()
+			symbol := "2330"
+			start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+			end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+			_, err := reader.ReadSingle(ctx, symbol, start, end)
+
+			if err == nil {
+				t.Error("ReadSingle() expected error for HTTP error status, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.wantErrContain) {
+				t.Errorf("ReadSingle() error = %v, want error containing %q", err, tt.wantErrContain)
+			}
+		})
+	}
+}
+
+// TestTWSEReader_ReadSingle_ParseErrors tests JSON parsing error handling
+func TestTWSEReader_ReadSingle_ParseErrors(t *testing.T) {
+	tests := []struct {
+		name           string
+		responseBody   string
+		wantErrContain string
+	}{
+		{
+			name:           "invalid JSON",
+			responseBody:   "{invalid json}",
+			wantErrContain: "parse JSON",
+		},
+		{
+			name:           "empty response",
+			responseBody:   "",
+			wantErrContain: "parse JSON",
+		},
+		{
+			name:           "malformed JSON array",
+			responseBody:   "[{incomplete",
+			wantErrContain: "parse JSON",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock server that returns invalid JSON
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(tt.responseBody))
+			}))
+			defer server.Close()
+
+			reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+			ctx := context.Background()
+			symbol := "2330"
+			start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+			end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+			_, err := reader.ReadSingle(ctx, symbol, start, end)
+
+			if err == nil {
+				t.Error("ReadSingle() expected error for invalid JSON, got nil")
+			}
+
+			if !strings.Contains(err.Error(), tt.wantErrContain) {
+				t.Errorf("ReadSingle() error = %v, want error containing %q", err, tt.wantErrContain)
+			}
+		})
+	}
+}
+
+// TestTWSEReader_ReadSingle_SymbolNotFound tests error when symbol not in response
+func TestTWSEReader_ReadSingle_SymbolNotFound(t *testing.T) {
+	// Create mock server with data that doesn't include requested symbol
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mockData := []TWSEStockData{
+			{
+				Date:         "1141028",
+				Code:         "2317",
+				Name:         "鴻海",
+				TradeVolume:  "15000000",
+				TradeValue:   "1575000000",
+				OpeningPrice: "105.00",
+				HighestPrice: "106.50",
+				LowestPrice:  "104.50",
+				ClosingPrice: "105.50",
+				Change:       "+0.50",
+				Transaction:  "8500",
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+	ctx := context.Background()
+	symbol := "2330" // Not in the mock data
+	start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, symbol, start, end)
+
+	if err == nil {
+		t.Error("ReadSingle() expected error when symbol not found, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "filter symbol") && !strings.Contains(err.Error(), "not found") {
+		t.Errorf("ReadSingle() error = %v, want error about symbol not found", err)
+	}
+}
+
+// TestTWSEReader_Read_PartialFailure tests error handling when some symbols fail
+func TestTWSEReader_Read_PartialFailure(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mockData := []TWSEStockData{
+			{
+				Date:         "1141028",
+				Code:         "2330",
+				Name:         "台積電",
+				TradeVolume:  "25000000",
+				TradeValue:   "23750000000",
+				OpeningPrice: "950.00",
+				HighestPrice: "960.00",
+				LowestPrice:  "945.00",
+				ClosingPrice: "955.00",
+				Change:       "+5.00",
+				Transaction:  "12500",
+			},
+			// Only 2330 is available, 2317 is missing
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+	ctx := context.Background()
+	symbols := []string{"2330", "2317"} // 2317 will fail
+	start := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, symbols, start, end)
+
+	// Should fail because one symbol failed
+	if err == nil {
+		t.Error("Read() expected error when one symbol fails, got nil")
+	}
+
+	if !strings.Contains(err.Error(), "2317") {
+		t.Errorf("Read() error should mention failed symbol 2317, got: %v", err)
+	}
+}
