@@ -224,7 +224,7 @@ func (f *FinMindReader) ReadSingle(ctx context.Context, symbol string, start, en
 
 	// Check HTTP status code
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		body, _ := io.ReadAll(resp.Body) //nolint:errcheck // Best effort error message
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -261,7 +261,11 @@ func (f *FinMindReader) Read(ctx context.Context, symbols []string, start, end t
 			return nil, err
 		}
 		result := make(map[string]*ParsedData)
-		result[symbols[0]] = data.(*ParsedData)
+		parsedData, ok := data.(*ParsedData)
+		if !ok {
+			return nil, fmt.Errorf("unexpected data type: %T", data)
+		}
+		result[symbols[0]] = parsedData
 		return result, nil
 	}
 
