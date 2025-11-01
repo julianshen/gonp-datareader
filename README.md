@@ -15,7 +15,7 @@ gonp-datareader is the Go equivalent of Python's pandas-datareader, providing a 
 
 ## Features
 
-- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud
+- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud, Tiingo, OECD, Eurostat, TWSE
 - **Simple API**: Easy-to-use interface for fetching financial and economic data
 - **Automatic Retries**: Built-in retry logic with exponential backoff
 - **Rate Limiting**: Token bucket rate limiting to respect API limits
@@ -73,6 +73,7 @@ func main() {
 | **tiingo** | Tiingo - High-quality stock market data & fundamentals | Yes | `AAPL`, `MSFT` |
 | **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
 | **eurostat** | Eurostat - European Union statistics | No | `DEMO_R_D3DENS`, `GDP` |
+| **twse** | Taiwan Stock Exchange - Taiwan stock market data | No | `2330`, `0050` |
 
 *FRED works without an API key but has lower rate limits
 
