@@ -959,17 +959,17 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 **Commit:** `feat: complete TWSE reader integration` ✅ Done (commit: 3b9ff39)
 
-### 15.7 TWSE Error Handling
-- ☐ Test: Invalid Taiwan stock code format returns error
-- ☐ Implement: Stock code validation
-- ☐ Test: Non-trading days handled gracefully
-- ☐ Implement: Trading day validation
-- ☐ Test: API timeout returns descriptive error
-- ☐ Implement: Timeout handling
-- ☐ Test: Network errors properly wrapped
-- ☐ Implement: Error message formatting
+### 15.7 TWSE Error Handling ✓
+- ☑ Test: Invalid Taiwan stock code format returns error
+- ☑ Implement: Stock code validation
+- ☑ Test: Non-trading days handled gracefully
+- ☑ Implement: Trading day validation
+- ☑ Test: API timeout returns descriptive error
+- ☑ Implement: Timeout handling
+- ☑ Test: Network errors properly wrapped
+- ☑ Implement: Error message formatting
 
-**Commit:** `feat: add TWSE error handling`
+**Commit:** `feat: add TWSE error handling` ✅ Done (commit: 2e97c65)
 
 ### 15.8 TWSE Factory Registration
 - ☐ Test: DataReader("twse") returns TWSE reader
@@ -1011,18 +1011,18 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 ## Progress Tracking
 
 **Current Phase:** Phase 15 - TWSE (Taiwan Stock Exchange) Reader
-**Last Completed:** Phase 15.6 - TWSE Reader Integration ✅
-**Next Up:** Phase 15.7 - TWSE Error Handling
+**Last Completed:** Phase 15.7 - TWSE Error Handling ✅
+**Next Up:** Phase 15.8 - TWSE Factory Registration
 
 **Statistics:**
-- Total Commits: 93 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 10)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.6
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 89.2% (reader integration complete)
+- Total Commits: 95 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 12)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.7
+- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 92.0% (error handling complete)
 - Data Sources: 9 (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
-  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.6 complete)
+  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.7 complete)
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+)
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
 - Production Ready: v0.2.0 complete, developing v0.3.0 with TWSE support
 - Next Release: v0.3.0 with TWSE support
-- Percentage: Phase 15 - 60% (6/10 sections complete)
+- Percentage: Phase 15 - 70% (7/10 sections complete)
