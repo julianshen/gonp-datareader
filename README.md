@@ -15,7 +15,7 @@ gonp-datareader is the Go equivalent of Python's pandas-datareader, providing a 
 
 ## Features
 
-- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud, Tiingo, OECD, Eurostat, TWSE
+- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud, Tiingo, OECD, Eurostat, TWSE, FinMind
 - **Simple API**: Easy-to-use interface for fetching financial and economic data
 - **Automatic Retries**: Built-in retry logic with exponential backoff
 - **Rate Limiting**: Token bucket rate limiting to respect API limits
@@ -74,8 +74,10 @@ func main() {
 | **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
 | **eurostat** | Eurostat - European Union statistics | No | `DEMO_R_D3DENS`, `GDP` |
 | **twse** | Taiwan Stock Exchange - Taiwan stock market data | No | `2330`, `0050` |
+| **finmind** | FinMind - Taiwan & international financial data (50+ datasets) | Optional** | `2330`, `AAPL` |
 
 *FRED works without an API key but has lower rate limits
+**FinMind works without an API key (300 req/hour) but token increases limit to 600 req/hour
 
 ## API Key Configuration
 
@@ -180,6 +182,8 @@ See the [examples](./examples/) directory for complete working examples:
 - **[Tiingo](./examples/tiingo/)** - High-quality stock market data and fundamentals
 - **[OECD](./examples/oecd/)** - Economic indicators and statistics
 - **[Eurostat](./examples/eurostat/)** - European Union statistics
+- **[TWSE](./examples/twse/)** - Taiwan Stock Exchange market data
+- **[FinMind](./examples/finmind/)** - Taiwan & international financial data (50+ datasets)
 
 Run an example:
 ```bash
@@ -189,6 +193,10 @@ go run main.go
 # For examples requiring API keys
 cd examples/fred
 FRED_API_KEY=your_key_here go run main.go
+
+# For FinMind with optional token
+cd examples/finmind
+FINMIND_TOKEN=your_token_here go run main.go
 ```
 
 ## Documentation
@@ -213,6 +221,8 @@ All core phases complete:
 - ✅ **Tiingo**: High-quality stock market data and fundamentals
 - ✅ **OECD**: Economic indicators and statistics (SDMX-JSON format)
 - ✅ **Eurostat**: European Union statistics (JSON-stat format)
+- ✅ **TWSE**: Taiwan Stock Exchange market data (no API key required)
+- ✅ **FinMind**: Taiwan & international financial data (50+ datasets, optional API key)
 - ✅ **Rate Limiting**: Token bucket algorithm for API limits
 - ✅ **Response Caching**: File-based caching with TTL
 - ✅ **Comprehensive Tests**: >75% test coverage
