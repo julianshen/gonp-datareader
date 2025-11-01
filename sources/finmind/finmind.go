@@ -251,6 +251,75 @@ func (f *FinMindReader) ReadSingle(ctx context.Context, symbol string, start, en
 // Returns a map of symbol to ParsedData.
 // Returns an error if any symbol fails to fetch.
 func (f *FinMindReader) Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement in Phase 16.7
-	return nil, nil
+	if len(symbols) == 0 {
+		return make(map[string]*ParsedData), nil
+	}
+
+	if len(symbols) == 1 {
+		data, err := f.ReadSingle(ctx, symbols[0], start, end)
+		if err != nil {
+			return nil, err
+		}
+		result := make(map[string]*ParsedData)
+		result[symbols[0]] = data.(*ParsedData)
+		return result, nil
+	}
+
+	return f.readParallel(ctx, symbols, start, end)
+}
+
+// readParallel fetches multiple symbols in parallel using a worker pool.
+func (f *FinMindReader) readParallel(ctx context.Context, symbols []string, start, end time.Time) (map[string]*ParsedData, error) {
+	type result struct {
+		symbol string
+		data   *ParsedData
+		err    error
+	}
+
+	// Create channels for work distribution and results
+	results := make(chan result, len(symbols))
+
+	// Create worker pool - limit concurrency to avoid overwhelming the server
+	maxWorkers := 10
+	if len(symbols) < maxWorkers {
+		maxWorkers = len(symbols)
+	}
+
+	// Use a semaphore pattern to limit concurrent workers
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Launch goroutines for each symbol
+	for _, symbol := range symbols {
+		sym := symbol
+
+		go func() {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Fetch data
+			data, err := f.ReadSingle(ctx, sym, start, end)
+
+			// Send result
+			res := result{symbol: sym, err: err}
+			if err == nil {
+				if parsedData, ok := data.(*ParsedData); ok {
+					res.data = parsedData
+				}
+			}
+			results <- res
+		}()
+	}
+
+	// Collect results
+	dataMap := make(map[string]*ParsedData, len(symbols))
+	for i := 0; i < len(symbols); i++ {
+		res := <-results
+		if res.err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", res.symbol, res.err)
+		}
+		dataMap[res.symbol] = res.data
+	}
+
+	return dataMap, nil
 }

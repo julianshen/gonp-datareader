@@ -332,3 +332,78 @@ func TestFinMindReader_ReadSingle_HTTPError(t *testing.T) {
 		t.Error("ReadSingle() should error on HTTP 500")
 	}
 }
+
+func TestFinMindReader_Read_MultipleSymbols(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		symbol := r.URL.Query().Get("data_id")
+
+		mockData := map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"date":              "2020-04-06",
+					"stock_id":          symbol,
+					"Trading_Volume":    59712754,
+					"Trading_money":     16324198154,
+					"open":              273.0,
+					"max":               275.5,
+					"min":               270.0,
+					"close":             275.5,
+					"spread":            4.0,
+					"Trading_turnover":  19971,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	reader := finmind.NewFinMindReaderWithEndpoint(nil, server.URL)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	symbols := []string{"2330", "2317", "2454"}
+	result, err := reader.Read(ctx, symbols, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	dataMap := result.(map[string]*finmind.ParsedData)
+
+	if len(dataMap) != 3 {
+		t.Fatalf("Expected 3 symbols, got %d", len(dataMap))
+	}
+
+	for _, symbol := range symbols {
+		data, ok := dataMap[symbol]
+		if !ok {
+			t.Errorf("Missing data for symbol %s", symbol)
+			continue
+		}
+		if data.Symbol != symbol {
+			t.Errorf("Expected symbol %s, got %s", symbol, data.Symbol)
+		}
+	}
+}
+
+func TestFinMindReader_Read_EmptySymbols(t *testing.T) {
+	reader := finmind.NewFinMindReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.Read(ctx, []string{}, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	dataMap := result.(map[string]*finmind.ParsedData)
+	if len(dataMap) != 0 {
+		t.Errorf("Expected empty map, got %d entries", len(dataMap))
+	}
+}
