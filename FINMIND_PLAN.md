@@ -72,27 +72,29 @@ Authorization: Bearer YOUR_TOKEN_HERE
 
 ## Implementation Phases
 
-### Phase 16.1: FinMind Reader Structure ⏳
+### Phase 16.1: FinMind Reader Structure ✅
 
 **Goal:** Create the basic FinMind reader structure with proper initialization.
 
 **Tasks:**
-- ☐ Test: FinMindReader struct exists
-- ☐ Implement: FinMindReader in `sources/finmind/finmind.go`
-- ☐ Test: FinMindReader embeds BaseSource
-- ☐ Implement: Embed BaseSource with source name "finmind"
-- ☐ Test: NewFinMindReader returns non-nil reader
-- ☐ Implement: NewFinMindReader constructor with token support
-- ☐ Test: NewFinMindReaderWithToken handles API token
-- ☐ Implement: Token storage and handling
-- ☐ Test: FinMindReader implements Reader interface
-- ☐ Verify: All Reader methods present (Read, ReadSingle, ValidateSymbol, Name, Source)
+- ✅ Test: FinMindReader struct exists
+- ✅ Implement: FinMindReader in `sources/finmind/finmind.go`
+- ✅ Test: FinMindReader embeds BaseSource
+- ✅ Implement: Embed BaseSource with source name "finmind"
+- ✅ Test: NewFinMindReader returns non-nil reader
+- ✅ Implement: NewFinMindReader constructor with token support
+- ✅ Test: NewFinMindReaderWithToken handles API token
+- ✅ Implement: Token storage and handling
+- ✅ Test: FinMindReader implements Reader interface
+- ✅ Verify: All Reader methods present (Read, ReadSingle, ValidateSymbol, Name, Source)
 
-**Files to create:**
-- `sources/finmind/finmind.go`
-- `sources/finmind/finmind_test.go`
+**Files created:**
+- `sources/finmind/finmind.go` (162 lines)
+- `sources/finmind/finmind_test.go` (62 lines)
 
-**Commit:** `feat: create FinMind reader structure`
+**Coverage:** 69.2%
+
+**Commit:** `feat: implement Phase 16.1 - FinMind reader structure with token support` (12edd5d)
 
 ---
 
