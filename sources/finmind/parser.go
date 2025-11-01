@@ -86,16 +86,16 @@ func ParseFinMindResponse(body []byte) (*ParsedData, error) {
 	rows := make([]map[string]string, 0, len(response.Data))
 	for _, entry := range response.Data {
 		row := map[string]string{
-			"date":              entry.Date,
-			"stock_id":          entry.StockID,
-			"Trading_Volume":    strconv.FormatInt(entry.TradingVolume, 10),
-			"Trading_money":     strconv.FormatInt(entry.TradingMoney, 10),
-			"open":              formatFloat(entry.Open),
-			"max":               formatFloat(entry.Max),
-			"min":               formatFloat(entry.Min),
-			"close":             formatFloat(entry.Close),
-			"spread":            formatFloat(entry.Spread),
-			"Trading_turnover":  strconv.FormatInt(entry.TradingTurnover, 10),
+			"date":             entry.Date,
+			"stock_id":         entry.StockID,
+			"Trading_Volume":   strconv.FormatInt(entry.TradingVolume, 10),
+			"Trading_money":    strconv.FormatInt(entry.TradingMoney, 10),
+			"open":             formatFloat(entry.Open),
+			"max":              formatFloat(entry.Max),
+			"min":              formatFloat(entry.Min),
+			"close":            formatFloat(entry.Close),
+			"spread":           formatFloat(entry.Spread),
+			"Trading_turnover": strconv.FormatInt(entry.TradingTurnover, 10),
 		}
 		rows = append(rows, row)
 	}

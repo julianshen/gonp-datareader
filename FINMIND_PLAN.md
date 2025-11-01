@@ -351,36 +351,42 @@ type ParsedData struct {
 
 ---
 
-### Phase 16.10: Documentation and Examples ⏳
+### Phase 16.10: Documentation and Examples ✅
 
 **Goal:** Provide comprehensive documentation and usage examples.
 
 **Tasks:**
-- ☐ Add package-level godoc for finmind package
-- ☐ Document FinMindReader struct and methods
-- ☐ Document authentication requirements
-- ☐ Create examples/finmind/main.go
-- ☐ Add example with token authentication
-- ☐ Add example for Taiwan stocks
-- ☐ Add example for US stocks (if supported)
-- ☐ Update README.md with FinMind entry
-- ☐ Document rate limits and best practices
+- ✅ Add package-level godoc for finmind package (completed in Phase 16.1)
+- ✅ Document FinMindReader struct and methods (completed in Phase 16.1-16.7)
+- ✅ Document authentication requirements (Bearer token in package docs)
+- ✅ Create examples/finmind/main.go (290 lines, 5 examples)
+- ✅ Add example with token authentication (Example 1 & 2)
+- ✅ Add example for Taiwan stocks (Example 3 with popular symbols)
+- ✅ Add example for different datasets (Example 4 lists 50+ datasets)
+- ✅ Update README.md with FinMind entry (supported sources table)
+- ✅ Document rate limits and best practices (300/600 req/hour)
 
-**Example Structure:**
-- Example 1: Basic usage with token
-- Example 2: Taiwan stock data (TSMC 2330)
-- Example 3: Multiple symbols
-- Example 4: Error handling
-- Example 5: Rate limit management
+**Example Structure (Implemented):**
+- ✅ Example 1: Convenience function with optional token
+- ✅ Example 2: Factory pattern with configuration
+- ✅ Example 3: Multiple Taiwan stocks (TSMC, Foxconn, MediaTek, etc.)
+- ✅ Example 4: Available datasets (50+ options documented)
+- ✅ Example 5: Error handling and validation
 
-**Documentation Topics:**
-- How to get FinMind API token
-- Rate limit information (300 vs 600 req/hour)
-- Symbol formats (Taiwan vs US)
-- Available datasets
-- Best practices
+**Documentation Topics (Covered):**
+- ✅ How to get FinMind API token (documented in example)
+- ✅ Rate limit information (300 vs 600 req/hour clearly noted)
+- ✅ Symbol formats (Taiwan 4/6-digit, US letters)
+- ✅ Available datasets (50+ datasets listed with descriptions)
+- ✅ Best practices (error handling examples)
 
-**Commit:** `docs: add comprehensive FinMind documentation and examples`
+**Files Created:**
+- `examples/finmind/main.go` (290 lines)
+
+**Files Updated:**
+- `README.md` - Added FinMind to features, sources table, examples, dev status
+
+**Commit:** `docs: complete Phase 16.10 - FinMind documentation and examples` (0f3c394)
 
 ---
 
