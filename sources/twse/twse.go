@@ -95,6 +95,48 @@ func (t *TWSEReader) ValidateSymbol(symbol string) error {
 	return t.BaseSource.ValidateSymbol(symbol)
 }
 
+// BuildURL constructs the TWSE API URL for fetching daily stock data.
+//
+// This returns the URL for the STOCK_DAY_ALL endpoint which provides
+// all stocks' daily trading data for the latest trading day.
+func (t *TWSEReader) BuildURL() string {
+	return buildDailyURL(t.baseURL)
+}
+
+// buildDailyURL constructs the URL for the daily stocks endpoint.
+//
+// The endpoint returns all stocks' daily trading data including:
+//   - Stock code and name
+//   - OHLC prices (Open, High, Low, Close)
+//   - Trading volume and transaction count
+//   - Price change
+//
+// Example: https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL
+func buildDailyURL(baseURL string) string {
+	// Remove trailing slash if present to avoid double slashes
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+	return baseURL + dailyStocksEndpoint
+}
+
+// buildIndexURL constructs the URL for the market indices endpoint.
+//
+// The endpoint returns market indices data including:
+//   - Index name (in Traditional Chinese)
+//   - Closing index value
+//   - Change direction and points
+//   - Percentage change
+//
+// Example: https://openapi.twse.com.tw/v1/exchangeReport/MI_INDEX
+func buildIndexURL(baseURL string) string {
+	// Remove trailing slash if present to avoid double slashes
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] == '/' {
+		baseURL = baseURL[:len(baseURL)-1]
+	}
+	return baseURL + indexEndpoint
+}
+
 // ReadSingle fetches data for a single symbol from TWSE.
 //
 // Note: The TWSE API currently returns the latest trading day's data.
