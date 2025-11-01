@@ -917,21 +917,21 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 **Commit:** `feat: implement TWSE URL builders` ✅ Done (commit: 63dd108)
 
-### 15.4 TWSE JSON Parser
-- ☐ Test: parseDailyStockJSON parses valid TWSE response
-- ☐ Implement: parseDailyStockJSON function
-- ☐ Test: Extract stock code, name, OHLC data
-- ☐ Implement: Parse all JSON fields
-- ☐ Test: Convert string numbers to float64
-- ☐ Implement: String to float conversion with error handling
-- ☐ Test: Convert ROC dates to time.Time
-- ☐ Implement: Use rocToGregorian for date conversion
-- ☐ Test: Handle missing/null values
-- ☐ Implement: Null value handling
-- ☐ Test: Extract volume and transaction count
-- ☐ Implement: Parse TradeVolume and Transaction fields
+### 15.4 TWSE JSON Parser ✓
+- ☑ Test: parseDailyStockJSON parses valid TWSE response
+- ☑ Implement: parseDailyStockJSON function
+- ☑ Test: Extract stock code, name, OHLC data
+- ☑ Implement: Parse all JSON fields
+- ☑ Test: Convert string numbers to float64
+- ☑ Implement: String to float conversion with error handling
+- ☑ Test: Convert ROC dates to time.Time
+- ☑ Implement: Use rocToGregorian for date conversion
+- ☑ Test: Handle missing/null values
+- ☑ Implement: Null value handling
+- ☑ Test: Extract volume and transaction count
+- ☑ Implement: Parse TradeVolume and Transaction fields
 
-**Commit:** `feat: implement TWSE JSON parser`
+**Commit:** `feat: implement TWSE JSON parser` ✅ Done (commit: 4090262)
 
 ### 15.5 Symbol and Date Filtering
 - ☐ Test: filterBySymbol extracts single symbol from response
@@ -1011,18 +1011,18 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 ## Progress Tracking
 
 **Current Phase:** Phase 15 - TWSE (Taiwan Stock Exchange) Reader
-**Last Completed:** Phase 15.3 - TWSE URL Building ✅
-**Next Up:** Phase 15.4 - TWSE JSON Parser
+**Last Completed:** Phase 15.4 - TWSE JSON Parser ✅
+**Next Up:** Phase 15.5 - Symbol and Date Filtering
 
 **Statistics:**
-- Total Commits: 88 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 5)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.3
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 73.9% (URL building complete)
+- Total Commits: 90 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 7)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1-15.4
+- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 80.5% (JSON parser complete)
 - Data Sources: 9 (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
-  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.3 complete)
+  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phases 15.1-15.4 complete)
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+)
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
 - Production Ready: v0.2.0 complete, developing v0.3.0 with TWSE support
 - Next Release: v0.3.0 with TWSE support
-- Percentage: Phase 15 - 30% (3/10 sections complete)
+- Percentage: Phase 15 - 40% (4/10 sections complete)
