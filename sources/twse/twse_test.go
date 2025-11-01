@@ -1,8 +1,13 @@
 package twse
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources"
@@ -279,5 +284,321 @@ func TestTWSEReader_BuildURL_CustomBaseURL(t *testing.T) {
 	// Check that URL starts with custom base URL
 	if !strings.HasPrefix(url, customURL) {
 		t.Errorf("BuildURL() should start with %s, got: %s", customURL, url)
+	}
+}
+
+// TestTWSEReader_ReadSingle tests the ReadSingle method with mock data
+func TestTWSEReader_ReadSingle(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Mock TWSE API response with sample data
+		mockData := []TWSEStockData{
+			{
+				Date:         "1141028",
+				Code:         "2330",
+				Name:         "台積電",
+				TradeVolume:  "25000000",
+				TradeValue:   "23750000000",
+				OpeningPrice: "950.00",
+				HighestPrice: "960.00",
+				LowestPrice:  "945.00",
+				ClosingPrice: "955.00",
+				Change:       "+5.00",
+				Transaction:  "12500",
+			},
+			{
+				Date:         "1141028",
+				Code:         "2317",
+				Name:         "鴻海",
+				TradeVolume:  "15000000",
+				TradeValue:   "1575000000",
+				OpeningPrice: "105.00",
+				HighestPrice: "106.50",
+				LowestPrice:  "104.50",
+				ClosingPrice: "105.50",
+				Change:       "+0.50",
+				Transaction:  "8500",
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	// Create reader with mock server URL
+	reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+
+	// Test parameters
+	ctx := context.Background()
+	symbol := "2330"
+	start := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+
+	// Execute ReadSingle
+	result, err := reader.ReadSingle(ctx, symbol, start, end)
+	if err != nil {
+		t.Fatalf("ReadSingle() error = %v", err)
+	}
+
+	// Verify result is not nil
+	if result == nil {
+		t.Fatal("ReadSingle() returned nil result")
+	}
+
+	// Verify result is ParsedData
+	data, ok := result.(*ParsedData)
+	if !ok {
+		t.Fatalf("ReadSingle() returned %T, want *ParsedData", result)
+	}
+
+	// Verify data contains expected symbol
+	if data.Symbol != symbol {
+		t.Errorf("Symbol = %q, want %q", data.Symbol, symbol)
+	}
+
+	// Verify data has at least one entry
+	if len(data.Date) == 0 {
+		t.Error("ParsedData has no dates")
+	}
+
+	if len(data.Open) == 0 {
+		t.Error("ParsedData has no opening prices")
+	}
+}
+
+// TestTWSEReader_ReadSingle_ValidatesSymbol tests that ReadSingle validates symbols
+func TestTWSEReader_ReadSingle_ValidatesSymbol(t *testing.T) {
+	reader := NewTWSEReader(nil)
+	ctx := context.Background()
+	start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name    string
+		symbol  string
+		wantErr bool
+	}{
+		{
+			name:    "empty symbol",
+			symbol:  "",
+			wantErr: true,
+		},
+		{
+			name:    "valid symbol",
+			symbol:  "2330",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := reader.ReadSingle(ctx, tt.symbol, start, end)
+
+			if tt.wantErr && err == nil {
+				t.Error("ReadSingle() expected error for invalid symbol, got nil")
+			}
+
+			if !tt.wantErr && err != nil {
+				// Note: valid symbols may still fail due to network issues in this test
+				// So we only check that error message mentions symbol validation if it fails
+				if strings.Contains(err.Error(), "invalid symbol") {
+					t.Errorf("ReadSingle() unexpected symbol validation error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// TestTWSEReader_ReadSingle_ValidatesDateRange tests date range validation
+func TestTWSEReader_ReadSingle_ValidatesDateRange(t *testing.T) {
+	reader := NewTWSEReader(nil)
+	ctx := context.Background()
+	symbol := "2330"
+
+	tests := []struct {
+		name    string
+		start   time.Time
+		end     time.Time
+		wantErr bool
+	}{
+		{
+			name:    "end before start",
+			start:   time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC),
+			wantErr: true,
+		},
+		{
+			name:    "valid range",
+			start:   time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := reader.ReadSingle(ctx, symbol, tt.start, tt.end)
+
+			if tt.wantErr && err == nil {
+				t.Error("ReadSingle() expected error for invalid date range, got nil")
+			}
+
+			if !tt.wantErr && err != nil {
+				// Note: valid ranges may still fail due to network issues
+				// So we only check that error message mentions date range if it fails
+				if strings.Contains(err.Error(), "invalid date range") {
+					t.Errorf("ReadSingle() unexpected date range error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+// TestTWSEReader_Read tests the Read method with multiple symbols
+func TestTWSEReader_Read(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Mock TWSE API response with sample data
+		mockData := []TWSEStockData{
+			{
+				Date:         "1141028",
+				Code:         "2330",
+				Name:         "台積電",
+				TradeVolume:  "25000000",
+				TradeValue:   "23750000000",
+				OpeningPrice: "950.00",
+				HighestPrice: "960.00",
+				LowestPrice:  "945.00",
+				ClosingPrice: "955.00",
+				Change:       "+5.00",
+				Transaction:  "12500",
+			},
+			{
+				Date:         "1141028",
+				Code:         "2317",
+				Name:         "鴻海",
+				TradeVolume:  "15000000",
+				TradeValue:   "1575000000",
+				OpeningPrice: "105.00",
+				HighestPrice: "106.50",
+				LowestPrice:  "104.50",
+				ClosingPrice: "105.50",
+				Change:       "+0.50",
+				Transaction:  "8500",
+			},
+			{
+				Date:         "1141028",
+				Code:         "2454",
+				Name:         "聯發科",
+				TradeVolume:  "8000000",
+				TradeValue:   "7600000000",
+				OpeningPrice: "950.00",
+				HighestPrice: "955.00",
+				LowestPrice:  "945.00",
+				ClosingPrice: "950.00",
+				Change:       "0.00",
+				Transaction:  "5500",
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	// Create reader with mock server URL
+	reader := NewTWSEReaderWithBaseURL(nil, server.URL)
+
+	// Test parameters
+	ctx := context.Background()
+	symbols := []string{"2330", "2317", "2454"}
+	start := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC)
+
+	// Execute Read
+	result, err := reader.Read(ctx, symbols, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	// Verify result is not nil
+	if result == nil {
+		t.Fatal("Read() returned nil result")
+	}
+
+	// Verify result is map[string]*ParsedData
+	dataMap, ok := result.(map[string]*ParsedData)
+	if !ok {
+		t.Fatalf("Read() returned %T, want map[string]*ParsedData", result)
+	}
+
+	// Verify all symbols are present
+	if len(dataMap) != len(symbols) {
+		t.Errorf("Read() returned %d symbols, want %d", len(dataMap), len(symbols))
+	}
+
+	for _, symbol := range symbols {
+		data, found := dataMap[symbol]
+		if !found {
+			t.Errorf("Read() missing data for symbol %q", symbol)
+			continue
+		}
+
+		if data.Symbol != symbol {
+			t.Errorf("Symbol = %q, want %q", data.Symbol, symbol)
+		}
+
+		if len(data.Date) == 0 {
+			t.Errorf("Symbol %q has no dates", symbol)
+		}
+	}
+}
+
+// TestTWSEReader_Read_ValidatesSymbols tests that Read validates symbol list
+func TestTWSEReader_Read_ValidatesSymbols(t *testing.T) {
+	reader := NewTWSEReader(nil)
+	ctx := context.Background()
+	start := time.Date(2025, 10, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name    string
+		symbols []string
+		wantErr bool
+	}{
+		{
+			name:    "empty symbol list",
+			symbols: []string{},
+			wantErr: true,
+		},
+		{
+			name:    "nil symbol list",
+			symbols: nil,
+			wantErr: true,
+		},
+		{
+			name:    "valid symbols",
+			symbols: []string{"2330", "2317"},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := reader.Read(ctx, tt.symbols, start, end)
+
+			if tt.wantErr && err == nil {
+				t.Error("Read() expected error for invalid symbols, got nil")
+			}
+
+			if !tt.wantErr && err != nil {
+				// Note: valid symbols may still fail due to network issues
+				// So we only check that error message mentions symbol validation if it fails
+				if strings.Contains(err.Error(), "invalid symbols") {
+					t.Errorf("Read() unexpected symbol validation error: %v", err)
+				}
+			}
+		})
 	}
 }

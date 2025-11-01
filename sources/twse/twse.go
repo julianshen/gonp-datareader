@@ -29,6 +29,8 @@ package twse
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
@@ -152,8 +154,55 @@ func (t *TWSEReader) ReadSingle(ctx context.Context, symbol string, start, end t
 		return nil, fmt.Errorf("invalid date range: %w", err)
 	}
 
-	// TODO: Implement HTTP request and parsing
-	return nil, fmt.Errorf("not yet implemented")
+	// Build URL
+	urlStr := t.BuildURL()
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := t.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check status code
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse JSON response
+	allStocks, err := parseDailyStockJSON(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse JSON: %w", err)
+	}
+
+	// Filter for the requested symbol
+	stockData, err := filterBySymbol(allStocks, symbol)
+	if err != nil {
+		return nil, fmt.Errorf("filter symbol: %w", err)
+	}
+
+	// Parse the stock data into ParsedData structure
+	data, err := parseStockData(stockData)
+	if err != nil {
+		return nil, fmt.Errorf("parse stock data: %w", err)
+	}
+
+	// Filter by date range
+	filteredData := filterByDateRange(data, start, end)
+
+	return filteredData, nil
 }
 
 // Read fetches data for multiple symbols from TWSE.
@@ -169,6 +218,63 @@ func (t *TWSEReader) Read(ctx context.Context, symbols []string, start, end time
 		return nil, fmt.Errorf("invalid date range: %w", err)
 	}
 
-	// TODO: Implement parallel fetching
-	return nil, fmt.Errorf("not yet implemented")
+	// Use parallel fetching for multiple symbols
+	return t.readParallel(ctx, symbols, start, end)
+}
+
+// readParallel fetches multiple symbols in parallel using a worker pool.
+func (t *TWSEReader) readParallel(ctx context.Context, symbols []string, start, end time.Time) (map[string]*ParsedData, error) {
+	type result struct {
+		symbol string
+		data   *ParsedData
+		err    error
+	}
+
+	// Create channels for work distribution and results
+	results := make(chan result, len(symbols))
+
+	// Create worker pool - limit concurrency to avoid overwhelming the server
+	maxWorkers := 10
+	if len(symbols) < maxWorkers {
+		maxWorkers = len(symbols)
+	}
+
+	// Use a semaphore pattern to limit concurrent workers
+	semaphore := make(chan struct{}, maxWorkers)
+
+	// Launch goroutines for each symbol
+	for _, symbol := range symbols {
+		// Capture symbol in loop variable
+		sym := symbol
+
+		go func() {
+			// Acquire semaphore
+			semaphore <- struct{}{}
+			defer func() { <-semaphore }()
+
+			// Fetch data
+			data, err := t.ReadSingle(ctx, sym, start, end)
+
+			// Send result
+			res := result{symbol: sym, err: err}
+			if err == nil {
+				if parsedData, ok := data.(*ParsedData); ok {
+					res.data = parsedData
+				}
+			}
+			results <- res
+		}()
+	}
+
+	// Collect results
+	dataMap := make(map[string]*ParsedData, len(symbols))
+	for i := 0; i < len(symbols); i++ {
+		res := <-results
+		if res.err != nil {
+			return nil, fmt.Errorf("failed to read %s: %w", res.symbol, res.err)
+		}
+		dataMap[res.symbol] = res.data
+	}
+
+	return dataMap, nil
 }
