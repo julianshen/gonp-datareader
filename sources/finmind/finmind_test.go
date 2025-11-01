@@ -1,9 +1,14 @@
 package finmind_test
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources/finmind"
 )
 
@@ -163,4 +168,167 @@ func hasSubstring(s, substr string) bool {
 		}
 	}
 	return false
+}
+
+func TestFinMindReader_ReadSingle(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify query parameters
+		query := r.URL.Query()
+		if query.Get("dataset") != "TaiwanStockPrice" {
+			t.Errorf("Expected dataset=TaiwanStockPrice, got %s", query.Get("dataset"))
+		}
+		if query.Get("data_id") != "2330" {
+			t.Errorf("Expected data_id=2330, got %s", query.Get("data_id"))
+		}
+
+		// Return mock response
+		mockData := map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"date":              "2020-04-06",
+					"stock_id":          "2330",
+					"Trading_Volume":    59712754,
+					"Trading_money":     16324198154,
+					"open":              273.0,
+					"max":               275.5,
+					"min":               270.0,
+					"close":             275.5,
+					"spread":            4.0,
+					"Trading_turnover":  19971,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	// Create reader with custom endpoint
+	reader := finmind.NewFinMindReaderWithEndpoint(nil, server.URL)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.ReadSingle(ctx, "2330", start, end)
+	if err != nil {
+		t.Fatalf("ReadSingle() error = %v", err)
+	}
+
+	data := result.(*finmind.ParsedData)
+
+	if data.Symbol != "2330" {
+		t.Errorf("Expected symbol '2330', got %q", data.Symbol)
+	}
+
+	if len(data.Rows) != 1 {
+		t.Fatalf("Expected 1 row, got %d", len(data.Rows))
+	}
+
+	row := data.Rows[0]
+	if row["close"] != "275.5" {
+		t.Errorf("Expected close '275.5', got %q", row["close"])
+	}
+}
+
+func TestFinMindReader_ReadSingle_WithToken(t *testing.T) {
+	// Create mock server that checks Authorization header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify Authorization header
+		authHeader := r.Header.Get("Authorization")
+		expectedAuth := "Bearer test-token-123"
+		if authHeader != expectedAuth {
+			t.Errorf("Expected Authorization header %q, got %q", expectedAuth, authHeader)
+		}
+
+		// Return mock response
+		mockData := map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"date":              "2020-04-06",
+					"stock_id":          "2330",
+					"Trading_Volume":    59712754,
+					"Trading_money":     16324198154,
+					"open":              273.0,
+					"max":               275.5,
+					"min":               270.0,
+					"close":             275.5,
+					"spread":            4.0,
+					"Trading_turnover":  19971,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	// Create reader with token and custom endpoint
+	opts := &internalhttp.ClientOptions{
+		Timeout: 10 * time.Second,
+	}
+	reader := finmind.NewFinMindReaderWithTokenAndEndpoint(opts, "test-token-123", server.URL)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.ReadSingle(ctx, "2330", start, end)
+	if err != nil {
+		t.Fatalf("ReadSingle() error = %v", err)
+	}
+
+	data := result.(*finmind.ParsedData)
+	if data.Symbol != "2330" {
+		t.Errorf("Expected symbol '2330', got %q", data.Symbol)
+	}
+}
+
+func TestFinMindReader_ReadSingle_InvalidSymbol(t *testing.T) {
+	reader := finmind.NewFinMindReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should error on empty symbol")
+	}
+}
+
+func TestFinMindReader_ReadSingle_InvalidDateRange(t *testing.T) {
+	reader := finmind.NewFinMindReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "2330", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should error on invalid date range")
+	}
+}
+
+func TestFinMindReader_ReadSingle_HTTPError(t *testing.T) {
+	// Create mock server that returns 500 error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	reader := finmind.NewFinMindReaderWithEndpoint(nil, server.URL)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "2330", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should error on HTTP 500")
+	}
 }

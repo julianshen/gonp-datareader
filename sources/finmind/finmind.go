@@ -25,10 +25,13 @@ package finmind
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/http"
 	"net/url"
 	"time"
 
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/internal/utils"
 	"github.com/julianshen/gonp-datareader/sources"
 )
 
@@ -84,6 +87,18 @@ func NewFinMindReader(opts *internalhttp.ClientOptions) *FinMindReader {
 //	reader := finmind.NewFinMindReaderWithToken(nil, token)
 //	data, err := reader.ReadSingle(ctx, "2330", start, end)
 func NewFinMindReaderWithToken(opts *internalhttp.ClientOptions, token string) *FinMindReader {
+	return NewFinMindReaderWithTokenAndEndpoint(opts, token, DefaultAPIEndpoint)
+}
+
+// NewFinMindReaderWithEndpoint creates a new FinMind reader with custom endpoint.
+// This is primarily used for testing with mock servers.
+func NewFinMindReaderWithEndpoint(opts *internalhttp.ClientOptions, endpoint string) *FinMindReader {
+	return NewFinMindReaderWithTokenAndEndpoint(opts, "", endpoint)
+}
+
+// NewFinMindReaderWithTokenAndEndpoint creates a new FinMind reader with both token and custom endpoint.
+// This is primarily used for testing with mock servers.
+func NewFinMindReaderWithTokenAndEndpoint(opts *internalhttp.ClientOptions, token, endpoint string) *FinMindReader {
 	// Apply default options if not provided
 	if opts == nil {
 		opts = internalhttp.DefaultClientOptions()
@@ -100,7 +115,7 @@ func NewFinMindReaderWithToken(opts *internalhttp.ClientOptions, token string) *
 		BaseSource: sources.NewBaseSource("finmind"),
 		client:     internalhttp.NewRetryableClient(opts),
 		token:      token,
-		endpoint:   DefaultAPIEndpoint,
+		endpoint:   endpoint,
 		dataset:    DefaultDataset,
 	}
 }
@@ -176,8 +191,56 @@ func formatDate(t time.Time) string {
 // Returns ParsedData containing the fetched data with columns and rows.
 // Returns an error if the symbol is invalid, the request fails, or no data is found.
 func (f *FinMindReader) ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error) {
-	// TODO: Implement in Phase 16.6
-	return nil, nil
+	// Validate symbol
+	if err := f.ValidateSymbol(symbol); err != nil {
+		return nil, fmt.Errorf("invalid symbol: %w", err)
+	}
+
+	// Validate date range
+	if err := utils.ValidateDateRange(start, end); err != nil {
+		return nil, fmt.Errorf("invalid date range: %w", err)
+	}
+
+	// Build API URL
+	urlStr := f.BuildURL(symbol, start, end)
+
+	// Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, "GET", urlStr, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	// Add Authorization header if token is present
+	if f.token != "" {
+		req.Header.Set("Authorization", "Bearer "+f.token)
+	}
+
+	// Execute HTTP request
+	resp, err := f.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch data: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check HTTP status code
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	// Parse JSON response
+	data, err := ParseFinMindResponse(body)
+	if err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	return data, nil
 }
 
 // Read fetches data for multiple symbols from FinMind in parallel.
