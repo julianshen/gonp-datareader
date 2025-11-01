@@ -260,3 +260,72 @@ func parseInt(s string) (int64, error) {
 	}
 	return i, nil
 }
+
+// filterBySymbol finds a specific stock symbol in the array of stocks.
+//
+// Returns the matching TWSEStockData or an error if the symbol is not found.
+// This is used to extract data for a single symbol from the API response
+// which returns all stocks.
+func filterBySymbol(stocks []TWSEStockData, symbol string) (TWSEStockData, error) {
+	if symbol == "" {
+		return TWSEStockData{}, fmt.Errorf("symbol cannot be empty")
+	}
+
+	for _, stock := range stocks {
+		if stock.Code == symbol {
+			return stock, nil
+		}
+	}
+
+	return TWSEStockData{}, fmt.Errorf("symbol %q not found in response", symbol)
+}
+
+// filterByDateRange filters ParsedData to include only dates within the specified range.
+//
+// The filtering is inclusive: both start and end dates are included if present.
+// Returns a new ParsedData with filtered data, preserving all slices in sync.
+func filterByDateRange(data *ParsedData, start, end time.Time) *ParsedData {
+	if data == nil || len(data.Date) == 0 {
+		return &ParsedData{
+			Symbol: data.Symbol,
+			Name:   data.Name,
+		}
+	}
+
+	// Pre-allocate slices for efficiency
+	filtered := &ParsedData{
+		Symbol:       data.Symbol,
+		Name:         data.Name,
+		Date:         make([]time.Time, 0, len(data.Date)),
+		Open:         make([]float64, 0, len(data.Date)),
+		High:         make([]float64, 0, len(data.Date)),
+		Low:          make([]float64, 0, len(data.Date)),
+		Close:        make([]float64, 0, len(data.Date)),
+		Volume:       make([]int64, 0, len(data.Date)),
+		Transactions: make([]int64, 0, len(data.Date)),
+		Change:       make([]float64, 0, len(data.Date)),
+	}
+
+	// Filter data within date range (inclusive)
+	for i, date := range data.Date {
+		// Compare dates (ignore time component)
+		dateOnly := time.Date(date.Year(), date.Month(), date.Day(), 0, 0, 0, 0, time.UTC)
+		startOnly := time.Date(start.Year(), start.Month(), start.Day(), 0, 0, 0, 0, time.UTC)
+		endOnly := time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+
+		if (dateOnly.Equal(startOnly) || dateOnly.After(startOnly)) &&
+			(dateOnly.Equal(endOnly) || dateOnly.Before(endOnly)) {
+			// Date is within range, include all data for this index
+			filtered.Date = append(filtered.Date, data.Date[i])
+			filtered.Open = append(filtered.Open, data.Open[i])
+			filtered.High = append(filtered.High, data.High[i])
+			filtered.Low = append(filtered.Low, data.Low[i])
+			filtered.Close = append(filtered.Close, data.Close[i])
+			filtered.Volume = append(filtered.Volume, data.Volume[i])
+			filtered.Transactions = append(filtered.Transactions, data.Transactions[i])
+			filtered.Change = append(filtered.Change, data.Change[i])
+		}
+	}
+
+	return filtered
+}

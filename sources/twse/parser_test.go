@@ -755,3 +755,246 @@ func TestParseInt(t *testing.T) {
 		})
 	}
 }
+
+// TestFilterBySymbol tests filtering stock data by symbol
+func TestFilterBySymbol(t *testing.T) {
+	stocks := []TWSEStockData{
+		{
+			Date:         "1141031",
+			Code:         "2330",
+			Name:         "台積電",
+			OpeningPrice: "64.60",
+			HighestPrice: "64.80",
+			LowestPrice:  "64.40",
+			ClosingPrice: "64.75",
+			TradeVolume:  "55956524",
+			Transaction:  "44302",
+			Change:       "0.35",
+		},
+		{
+			Date:         "1141031",
+			Code:         "2317",
+			Name:         "鴻海",
+			OpeningPrice: "100.00",
+			HighestPrice: "102.50",
+			LowestPrice:  "99.00",
+			ClosingPrice: "101.50",
+			TradeVolume:  "12345678",
+			Transaction:  "10000",
+			Change:       "1.50",
+		},
+		{
+			Date:         "1141031",
+			Code:         "2454",
+			Name:         "聯發科",
+			OpeningPrice: "800.00",
+			HighestPrice: "810.00",
+			LowestPrice:  "795.00",
+			ClosingPrice: "805.00",
+			TradeVolume:  "9876543",
+			Transaction:  "8000",
+			Change:       "5.00",
+		},
+	}
+
+	tests := []struct {
+		name    string
+		symbol  string
+		wantErr bool
+		wantLen int
+	}{
+		{
+			name:    "find TSMC (2330)",
+			symbol:  "2330",
+			wantErr: false,
+			wantLen: 1,
+		},
+		{
+			name:    "find Hon Hai (2317)",
+			symbol:  "2317",
+			wantErr: false,
+			wantLen: 1,
+		},
+		{
+			name:    "symbol not found",
+			symbol:  "9999",
+			wantErr: true,
+			wantLen: 0,
+		},
+		{
+			name:    "empty symbol",
+			symbol:  "",
+			wantErr: true,
+			wantLen: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := filterBySymbol(stocks, tt.symbol)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("filterBySymbol() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr && got.Code != tt.symbol {
+				t.Errorf("filterBySymbol() got symbol %q, want %q", got.Code, tt.symbol)
+			}
+		})
+	}
+}
+
+// TestFilterBySymbol_ReturnsCorrectData tests that filtered data is correct
+func TestFilterBySymbol_ReturnsCorrectData(t *testing.T) {
+	stocks := []TWSEStockData{
+		{
+			Date:         "1141031",
+			Code:         "2330",
+			Name:         "台積電",
+			OpeningPrice: "64.60",
+			ClosingPrice: "64.75",
+		},
+		{
+			Date:         "1141031",
+			Code:         "2317",
+			Name:         "鴻海",
+			OpeningPrice: "100.00",
+			ClosingPrice: "101.50",
+		},
+	}
+
+	result, err := filterBySymbol(stocks, "2330")
+	if err != nil {
+		t.Fatalf("filterBySymbol() error = %v", err)
+	}
+
+	if result.Code != "2330" {
+		t.Errorf("Code = %q, want %q", result.Code, "2330")
+	}
+	if result.Name != "台積電" {
+		t.Errorf("Name = %q, want %q", result.Name, "台積電")
+	}
+	if result.OpeningPrice != "64.60" {
+		t.Errorf("OpeningPrice = %q, want %q", result.OpeningPrice, "64.60")
+	}
+	if result.ClosingPrice != "64.75" {
+		t.Errorf("ClosingPrice = %q, want %q", result.ClosingPrice, "64.75")
+	}
+}
+
+// TestFilterByDateRange tests filtering parsed data by date range
+func TestFilterByDateRange(t *testing.T) {
+	// Create test data with multiple dates
+	data := &ParsedData{
+		Symbol: "2330",
+		Name:   "台積電",
+		Date: []time.Time{
+			time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC),
+		},
+		Open:         []float64{64.0, 64.2, 64.4, 64.6, 64.8},
+		High:         []float64{64.5, 64.7, 64.9, 65.1, 65.3},
+		Low:          []float64{63.5, 63.7, 63.9, 64.1, 64.3},
+		Close:        []float64{64.2, 64.4, 64.6, 64.8, 65.0},
+		Volume:       []int64{1000000, 1100000, 1200000, 1300000, 1400000},
+		Transactions: []int64{10000, 11000, 12000, 13000, 14000},
+		Change:       []float64{0.2, 0.2, 0.2, 0.2, 0.2},
+	}
+
+	tests := []struct {
+		name    string
+		start   time.Time
+		end     time.Time
+		wantLen int
+	}{
+		{
+			name:    "all dates",
+			start:   time.Date(2025, 10, 28, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 11, 1, 0, 0, 0, 0, time.UTC),
+			wantLen: 5,
+		},
+		{
+			name:    "middle three days",
+			start:   time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC),
+			wantLen: 3,
+		},
+		{
+			name:    "single day",
+			start:   time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC),
+			wantLen: 1,
+		},
+		{
+			name:    "no matching dates",
+			start:   time.Date(2025, 11, 2, 0, 0, 0, 0, time.UTC),
+			end:     time.Date(2025, 11, 5, 0, 0, 0, 0, time.UTC),
+			wantLen: 0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := filterByDateRange(data, tt.start, tt.end)
+			if len(got.Date) != tt.wantLen {
+				t.Errorf("filterByDateRange() got %d dates, want %d", len(got.Date), tt.wantLen)
+			}
+			// Verify all slices have same length
+			if len(got.Open) != tt.wantLen || len(got.High) != tt.wantLen ||
+				len(got.Low) != tt.wantLen || len(got.Close) != tt.wantLen ||
+				len(got.Volume) != tt.wantLen || len(got.Transactions) != tt.wantLen ||
+				len(got.Change) != tt.wantLen {
+				t.Error("filterByDateRange() returned inconsistent slice lengths")
+			}
+		})
+	}
+}
+
+// TestFilterByDateRange_PreservesData tests that filtering preserves correct data
+func TestFilterByDateRange_PreservesData(t *testing.T) {
+	data := &ParsedData{
+		Symbol: "2330",
+		Name:   "台積電",
+		Date: []time.Time{
+			time.Date(2025, 10, 29, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC),
+			time.Date(2025, 10, 31, 0, 0, 0, 0, time.UTC),
+		},
+		Open:         []float64{64.2, 64.4, 64.6},
+		High:         []float64{64.7, 64.9, 65.1},
+		Low:          []float64{63.7, 63.9, 64.1},
+		Close:        []float64{64.4, 64.6, 64.8},
+		Volume:       []int64{1100000, 1200000, 1300000},
+		Transactions: []int64{11000, 12000, 13000},
+		Change:       []float64{0.2, 0.2, 0.2},
+	}
+
+	// Filter to get only Oct 30
+	start := time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2025, 10, 30, 0, 0, 0, 0, time.UTC)
+
+	result := filterByDateRange(data, start, end)
+
+	if len(result.Date) != 1 {
+		t.Fatalf("Expected 1 date, got %d", len(result.Date))
+	}
+
+	// Verify the correct data was preserved
+	if result.Open[0] != 64.4 {
+		t.Errorf("Open = %v, want 64.4", result.Open[0])
+	}
+	if result.High[0] != 64.9 {
+		t.Errorf("High = %v, want 64.9", result.High[0])
+	}
+	if result.Low[0] != 63.9 {
+		t.Errorf("Low = %v, want 63.9", result.Low[0])
+	}
+	if result.Close[0] != 64.6 {
+		t.Errorf("Close = %v, want 64.6", result.Close[0])
+	}
+	if result.Volume[0] != 1200000 {
+		t.Errorf("Volume = %v, want 1200000", result.Volume[0])
+	}
+}
