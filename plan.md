@@ -879,20 +879,150 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ---
 
+## Phase 15: Taiwan Stock Exchange (TWSE) Reader
+
+### 15.1 TWSE Reader Structure ✓
+- ☑ Test: TWSEReader struct exists
+- ☑ Implement: TWSEReader in sources/twse/twse.go
+- ☑ Test: TWSEReader embeds BaseSource
+- ☑ Implement: Embed BaseSource
+- ☑ Test: NewTWSEReader returns non-nil reader
+- ☑ Implement: NewTWSEReader constructor
+- ☑ Test: TWSEReader implements Reader interface
+- ☑ Verify: All Reader methods present
+
+**Commit:** `feat: create TWSE reader structure` ✅ Done (commit: 087c642)
+
+### 15.2 ROC Calendar Conversion
+- ☐ Test: rocToGregorian converts "1141031" to 2025-10-31
+- ☐ Implement: rocToGregorian function (ROC Year + 1911)
+- ☐ Test: gregorianToROC converts 2025-10-31 to "1141031"
+- ☐ Implement: gregorianToROC function
+- ☐ Test: parseROCDate handles "YYYMMDD" format
+- ☐ Implement: parseROCDate with error handling
+- ☐ Test: formatROCDate creates correct ROC date string
+- ☐ Implement: formatROCDate function
+- ☐ Test: Edge cases (leap years, year boundaries)
+- ☐ Verify: Comprehensive date conversion
+
+**Commit:** `feat: add ROC calendar conversion utilities`
+
+### 15.3 TWSE URL Building
+- ☐ Test: buildDailyURL creates valid TWSE API URL
+- ☐ Implement: buildDailyURL for STOCK_DAY_ALL endpoint
+- ☐ Test: buildIndexURL creates valid index endpoint URL
+- ☐ Implement: buildIndexURL for MI_INDEX endpoint
+- ☐ Test: URLs use correct base URL
+- ☐ Verify: URL constants and formatting
+
+**Commit:** `feat: implement TWSE URL builders`
+
+### 15.4 TWSE JSON Parser
+- ☐ Test: parseDailyStockJSON parses valid TWSE response
+- ☐ Implement: parseDailyStockJSON function
+- ☐ Test: Extract stock code, name, OHLC data
+- ☐ Implement: Parse all JSON fields
+- ☐ Test: Convert string numbers to float64
+- ☐ Implement: String to float conversion with error handling
+- ☐ Test: Convert ROC dates to time.Time
+- ☐ Implement: Use rocToGregorian for date conversion
+- ☐ Test: Handle missing/null values
+- ☐ Implement: Null value handling
+- ☐ Test: Extract volume and transaction count
+- ☐ Implement: Parse TradeVolume and Transaction fields
+
+**Commit:** `feat: implement TWSE JSON parser`
+
+### 15.5 Symbol and Date Filtering
+- ☐ Test: filterBySymbol extracts single symbol from response
+- ☐ Implement: Filter function for Taiwan stock codes
+- ☐ Test: filterByDateRange filters within start/end dates
+- ☐ Implement: Date range filtering
+- ☐ Test: Handle symbol not found case
+- ☐ Implement: Return ErrDataNotFound
+
+**Commit:** `feat: add TWSE symbol and date filtering`
+
+### 15.6 TWSE Reader Integration
+- ☐ Test: TWSEReader.ReadSingle fetches "2330" (TSMC) data
+- ☐ Implement: ReadSingle method with HTTP request
+- ☐ Test: TWSEReader.ReadSingle validates Taiwan stock code
+- ☐ Implement: Symbol validation (4-6 digit codes)
+- ☐ Test: TWSEReader.ReadSingle validates date range
+- ☐ Implement: Date validation
+- ☐ Test: TWSEReader.ReadSingle returns ParsedData
+- ☐ Implement: Complete integration with parser
+- ☐ Test: TWSEReader.Read handles multiple symbols
+- ☐ Implement: Parallel fetching pattern
+- ☐ Test: TWSEReader respects rate limits
+- ☐ Implement: Rate limiting (1-2 req/sec)
+
+**Commit:** `feat: complete TWSE reader integration`
+
+### 15.7 TWSE Error Handling
+- ☐ Test: Invalid Taiwan stock code format returns error
+- ☐ Implement: Stock code validation
+- ☐ Test: Non-trading days handled gracefully
+- ☐ Implement: Trading day validation
+- ☐ Test: API timeout returns descriptive error
+- ☐ Implement: Timeout handling
+- ☐ Test: Network errors properly wrapped
+- ☐ Implement: Error message formatting
+
+**Commit:** `feat: add TWSE error handling`
+
+### 15.8 TWSE Factory Registration
+- ☐ Test: DataReader("twse") returns TWSE reader
+- ☐ Implement: Register in init() function
+- ☐ Test: Read with "twse" source works end-to-end
+- ☐ Verify: Complete factory integration
+- ☐ Test: TWSE reader in supported sources list
+- ☐ Verify: Registration complete
+
+**Commit:** `feat: register TWSE reader with factory`
+
+### 15.9 TWSE Documentation
+- ☐ Add package-level godoc for twse package
+- ☐ Document TWSEReader struct and methods
+- ☐ Document ROC calendar conversion functions
+- ☐ Add TWSE section to docs/sources.md
+- ☐ Document symbol format and limitations
+- ☐ Create examples/twse/main.go
+- ☐ Add TWSE to migration guide
+- ☐ Update README with TWSE support
+
+**Commit:** `docs: add comprehensive TWSE documentation`
+
+### 15.10 TWSE Testing
+- ☐ Test: Parse valid TWSE JSON response with real data
+- ☐ Test: Handle malformed JSON gracefully
+- ☐ Test: ROC date conversion edge cases
+- ☐ Test: String to number conversion errors
+- ☐ Test: Symbol validation (valid/invalid formats)
+- ☐ Test: Empty response array handling
+- ☐ Verify: >80% test coverage for TWSE package
+
+**Commit:** `test: add comprehensive TWSE unit tests`
+
+**Status:** Planning phase - detailed implementation plan created in TWSE_PLAN.md
+
+---
+
 ## Progress Tracking
 
-**Current Phase:** Phase 14 - Release Preparation
-**Last Completed:** Phase 14.2 - Version 0.2.0 Checklist
-**Next Up:** Ready for v0.2.0 release tag! 🎉
+**Current Phase:** Phase 15 - TWSE (Taiwan Stock Exchange) Reader
+**Last Completed:** Phase 15.1 - TWSE Reader Structure ✅
+**Next Up:** Phase 15.2 - ROC Calendar Conversion
 
 **Statistics:**
-- Total Commits: 83+ (v0.1.0: 78, v0.2.0: 5+)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2 (ALL PHASES COMPLETE!)
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, Weighted ~80%+
+- Total Commits: 84 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 1)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, 15.1
+- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, TWSE 37.5% (structure phase)
 - Data Sources: 9 (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
+  - **In Progress:** TWSE (Taiwan Stock Exchange) - 10th data source (Phase 15.1 complete)
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+)
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
-- Production Ready: ✅ All features complete with comprehensive documentation
-- Release Status: 🎉 **READY FOR v0.2.0 RELEASE!**
-- Percentage: 100% (ALL v0.2.0 REQUIREMENTS COMPLETE!)
+- Production Ready: v0.2.0 complete, developing v0.3.0 with TWSE support
+- Next Release: v0.3.0 with TWSE support
+- Percentage: Phase 15 - 10% (1/10 sections complete)
