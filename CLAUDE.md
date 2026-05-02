@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **gonp-datareader** is a Go library for fetching financial and economic data from various sources (Yahoo Finance, FRED, World Bank, etc.), designed to work with [gonp](https://github.com/julianshen/gonp) DataFrames. This is the Go equivalent of Python's pandas-datareader.
 
-**Current Status:** Initial planning phase - no implementation code yet. All planning documentation is complete.
+**Current Status:** Active development. Multiple data sources implemented with >90% test coverage.
 
 ---
 
@@ -85,19 +85,26 @@ This project follows a **plugin architecture** where each data source implements
 gonp-datareader/
 ├── datareader.go          # Main Reader interface + factory function
 ├── config.go              # Options configuration
-├── error.go               # Custom error types
 ├── sources/               # Data source implementations
-│   ├── source.go         # Base source interface
-│   ├── yahoo/            # Yahoo Finance (no API key)
-│   ├── fred/             # Federal Reserve Economic Data (API key optional)
-│   ├── worldbank/        # World Bank (no API key)
-│   └── alphavantage/     # Alpha Vantage (API key required)
+│   ├── source.go          # Base source interface
+│   ├── yahoo/             # Yahoo Finance (no API key)
+│   ├── fred/              # Federal Reserve Economic Data (API key optional)
+│   ├── worldbank/         # World Bank (no API key)
+│   ├── alphavantage/      # Alpha Vantage (API key required)
+│   ├── stooq/             # Stooq (no API key)
+│   ├── iex/               # IEX Cloud (API key required)
+│   ├── tiingo/            # Tiingo (API key required)
+│   ├── oecd/              # OECD (no API key)
+│   ├── eurostat/          # Eurostat (no API key)
+│   ├── twse/              # Taiwan Stock Exchange (no API key)
+│   └── finmind/           # FinMind (optional API key)
 ├── internal/
-│   ├── http/            # HTTP client with retry logic + rate limiting
-│   ├── cache/           # Optional response caching
-│   └── utils/           # Validation, date parsing
-├── examples/            # Usage examples
-└── docs/                # Additional documentation
+│   ├── http/              # HTTP client with retry logic + rate limiting
+│   ├── cache/             # Optional response caching
+│   ├── ratelimit/         # Token bucket rate limiter
+│   └── utils/             # Validation, date parsing
+├── examples/              # Usage examples
+└── docs/                  # Additional documentation
 ```
 
 ### Key Interfaces
@@ -105,10 +112,11 @@ gonp-datareader/
 **Reader Interface** (sources/source.go):
 ```go
 type Reader interface {
-    Read(ctx context.Context, symbols []string, start, end time.Time) (*dataframe.DataFrame, error)
-    ReadSingle(ctx context.Context, symbol string, start, end time.Time) (*series.Series, error)
+    Read(ctx context.Context, symbols []string, start, end time.Time) (interface{}, error)
+    ReadSingle(ctx context.Context, symbol string, start, end time.Time) (interface{}, error)
     ValidateSymbol(symbol string) error
     Name() string
+    Source() string
 }
 ```
 
@@ -130,6 +138,10 @@ This project follows **strict Test-Driven Development (TDD)** with the **Tidy Fi
 3. **REFACTOR**: Improve code structure while keeping tests green
 
 **Never write production code without a failing test first.**
+
+**Each commit lands the test for the behaviour it introduces.**
+Never an "implement X, tests later" commit.
+Never a plan structured as "implement A, B, C" then "add tests for A, B, C".
 
 ### Commit Discipline
 
@@ -163,13 +175,79 @@ This project follows **strict Test-Driven Development (TDD)** with the **Tidy Fi
 
 ---
 
+## Planning & Workflow
+
+### Branching
+
+**Never commit to main.**
+
+Always create a branch before editing:
+
+```bash
+git checkout -b feat/<slug>    # new feature
+git checkout -b fix/<slug>     # bug fix
+git checkout -b chore/<slug>   # maintenance, deps, tooling
+```
+
+Examples: `feat/yahoo-options`, `fix/race-in-cache`, `chore/update-linter`
+
+### Planning
+
+**Plan first, then implement.**
+
+For any non-trivial work, invoke `superpowers:writing-plans` before writing code.
+
+For any new feature or API surface (new endpoint, new conversion mode, new CLI flag, etc.), invoke `superpowers:brainstorming` before entering plan mode.
+
+### Pull Requests
+
+Each PR should be a **small, independently reviewable chunk**.
+
+Do not bundle unrelated changes. Split large changes into stacked PRs.
+
+### Verification
+
+**Verify before claiming done.**
+
+Use `superpowers:verification-before-completion`: run the exact build/test commands and quote the output before saying something passes.
+
+### Quality
+
+**No shortcuts.**
+
+No disabled checks, relaxed lint rules, lowered thresholds, `// nolint`, skipped build tags, `|| true`, or `--no-verify`.
+
+If something is hard, understand it.
+
+**Don't skip failing tests.**
+
+No `t.Skip`, no commented assertions, no `_test_disabled` files, no never-set build tags.
+
+Fix the code or fix the test.
+
+**Complete implementation.**
+
+Trace root causes; do not work around crashes by removing the call that triggers them, do not silently shrink scope, do not leave `// TODO` stubs in shipped code.
+
+**Ask before cutting any feature.**
+
+If a planned endpoint, option, format, or behaviour cannot be implemented as agreed, pause and ask — even removing a case from an integration smoke test counts.
+
+---
+
 ## Testing Standards
 
 ### Coverage Requirements
-- Minimum: **80%** for all packages
+- Minimum: **90%** for all packages
 - Critical paths: **100%** (data parsing, error handling)
 - Test all exported functions
 - Test error conditions and edge cases
+
+Measure coverage with:
+```bash
+go test -covermode=atomic -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | tail -n 1
+```
 
 ### Test Organization
 
@@ -285,7 +363,7 @@ Before each commit:
 - ☐ Code formatted (`gofmt -s -w .`)
 - ☐ Single logical change
 - ☐ Proper commit message with prefix
-- ☐ Test coverage maintained (>80%)
+- ☐ Test coverage maintained (>90%)
 - ☐ Documentation updated if needed
 - ☐ Item marked complete in plan.md
 
@@ -418,4 +496,4 @@ git commit -m "feat: add symbol validation for yahoo reader"
 7. **Explicit dependencies** - Use interfaces, inject dependencies
 8. **Document exports** - Every exported item needs godoc
 9. **Check errors** - Always check, always wrap with context
-10. **Test thoroughly** - >80% coverage, test edge cases and errors
+10. **Test thoroughly** - >90% coverage, test edge cases and errors
