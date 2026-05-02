@@ -1034,7 +1034,7 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 **Statistics:**
 - Total Commits: 127 (latest tag: v1.0.0; current HEAD: v1.0.0-41-gba626bf)
 - Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**
-- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **FinMind 93.8%**; aggregate `./...` total is 50.1% because example `main` packages are included at 0.0%
+- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **FinMind 93.8%**; aggregate root module `./...` total is 92.8% with examples verified in their separate module
 - Data Sources: **11** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **FinMind**)
   - **✅ TWSE (Taiwan Stock Exchange):** Fully implemented, tested, documented, and production-ready!
   - **✅ FinMind:** Fully implemented, tested, documented, and production-ready with optional token authentication!

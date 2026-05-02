@@ -163,7 +163,9 @@ func TestIntegration_RealYahooFinance(t *testing.T) {
 		return
 	}
 
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
 

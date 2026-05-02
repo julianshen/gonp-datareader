@@ -230,15 +230,21 @@ func TestNilCache(t *testing.T) {
 
 func TestFileCache_SetError(t *testing.T) {
 	tmpDir := t.TempDir()
-	cachePath := filepath.Join(tmpDir, "cache-file")
-	if err := os.WriteFile(cachePath, []byte("not a directory"), 0o644); err != nil {
-		t.Fatalf("Failed to create cache path collision: %v", err)
+	cachePath := filepath.Join(tmpDir, "cache")
+	key := "newkey"
+	entryPath := cacheFilename(cachePath, key)
+
+	if err := os.MkdirAll(cachePath, 0o755); err != nil {
+		t.Fatalf("Failed to create cache directory: %v", err)
+	}
+	if err := os.Mkdir(entryPath, 0o755); err != nil {
+		t.Fatalf("Failed to create cache entry collision: %v", err)
 	}
 
 	c := cache.NewFileCache(cachePath)
 
-	if err := c.Set("newkey", []byte("value"), 1*time.Hour); err == nil {
-		t.Error("Set should return error when cache path is a file")
+	if err := c.Set(key, []byte("value"), 1*time.Hour); err == nil {
+		t.Error("Set should return error when cache entry path is a directory")
 	}
 }
 
