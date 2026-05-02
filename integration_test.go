@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +15,8 @@ import (
 	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
+
+const realYahooIntegrationEnv = "GONP_DATAREADER_LIVE_YAHOO"
 
 // TestIntegration_EndToEnd demonstrates complete end-to-end functionality
 // with a mock Yahoo Finance server.
@@ -132,26 +135,43 @@ func TestIntegration_EndToEnd(t *testing.T) {
 	t.Log("✓ Integration test completed successfully!")
 }
 
-// TestIntegration_RealYahooFinance tests against the real Yahoo Finance API.
-// This test may fail due to rate limiting or network issues.
-// Run with: go test -tags=integration -run TestIntegration_RealYahooFinance
-func TestIntegration_RealYahooFinance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping real API test in short mode")
+func realYahooIntegrationEnabled() bool {
+	return os.Getenv(realYahooIntegrationEnv) == "1"
+}
+
+func TestRealYahooIntegrationEnabled(t *testing.T) {
+	t.Setenv(realYahooIntegrationEnv, "")
+	if realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to be disabled when env var is unset")
 	}
 
-	ctx := context.Background()
+	t.Setenv(realYahooIntegrationEnv, "1")
+	if !realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to be enabled when env var is 1")
+	}
+
+	t.Setenv(realYahooIntegrationEnv, "true")
+	if realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to require explicit value 1")
+	}
+}
+
+// TestIntegration_RealYahooFinance tests against the real Yahoo Finance API when explicitly enabled.
+func TestIntegration_RealYahooFinance(t *testing.T) {
+	if !realYahooIntegrationEnabled() {
+		t.Logf("set %s=1 to run the real Yahoo Finance API check", realYahooIntegrationEnv)
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
 
-	// Add delay to avoid rate limiting
-	time.Sleep(2 * time.Second)
-
 	data, err := datareader.Read(ctx, "AAPL", "yahoo", start, end, nil)
 	if err != nil {
-		t.Logf("Real API test failed (expected due to rate limiting): %v", err)
-		t.Skip("Skipping due to API error - this is normal")
-		return
+		t.Fatalf("Real Yahoo Finance API check failed: %v", err)
 	}
 
 	parsedData := data.(*yahoo.ParsedData)

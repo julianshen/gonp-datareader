@@ -1,6 +1,8 @@
 package cache_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -227,29 +229,22 @@ func TestNilCache(t *testing.T) {
 }
 
 func TestFileCache_SetError(t *testing.T) {
-	// Create a temporary directory
-	tmpDir, err := os.MkdirTemp("", "cache-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
+	tmpDir := t.TempDir()
+	cachePath := filepath.Join(tmpDir, "cache")
+	key := "newkey"
+	entryPath := cacheFilename(cachePath, key)
+
+	if err := os.MkdirAll(cachePath, 0o755); err != nil {
+		t.Fatalf("Failed to create cache directory: %v", err)
 	}
-	defer os.RemoveAll(tmpDir)
-
-	c := cache.NewFileCache(tmpDir)
-
-	// Make the cache directory read-only to cause Set to fail
-	// First create the directory
-	_ = c.Set("test", []byte("data"), 1*time.Hour)
-
-	// Remove write permission
-	if err := os.Chmod(tmpDir, 0o555); err != nil {
-		t.Skipf("Cannot change permissions: %v", err)
+	if err := os.Mkdir(entryPath, 0o755); err != nil {
+		t.Fatalf("Failed to create cache entry collision: %v", err)
 	}
-	defer os.Chmod(tmpDir, 0o755) // Restore permissions for cleanup
 
-	// Try to set a new key - this should fail
-	err = c.Set("newkey", []byte("value"), 1*time.Hour)
-	if err == nil {
-		t.Error("Set should return error when directory is not writable")
+	c := cache.NewFileCache(cachePath)
+
+	if err := c.Set(key, []byte("value"), 1*time.Hour); err == nil {
+		t.Error("Set should return error when cache entry path is a directory")
 	}
 }
 
@@ -270,31 +265,25 @@ func TestFileCache_DeleteNonExistent(t *testing.T) {
 }
 
 func TestFileCache_DeleteError(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "cache-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
-	defer os.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
+	cachePath := filepath.Join(tmpDir, "cache")
+	key := "testkey"
+	entryPath := cacheFilename(cachePath, key)
 
-	c := cache.NewFileCache(tmpDir)
-
-	// Set a value first
-	err = c.Set("testkey", []byte("testvalue"), 1*time.Hour)
-	if err != nil {
-		t.Fatalf("Set failed: %v", err)
+	if err := os.MkdirAll(filepath.Join(entryPath, "child"), 0o755); err != nil {
+		t.Fatalf("Failed to create cache entry directory collision: %v", err)
 	}
 
-	// Make directory read-only
-	if err := os.Chmod(tmpDir, 0o555); err != nil {
-		t.Skipf("Cannot change permissions: %v", err)
-	}
-	defer os.Chmod(tmpDir, 0o755)
+	c := cache.NewFileCache(cachePath)
 
-	// Try to delete - should fail
-	err = c.Delete("testkey")
-	if err == nil {
-		t.Error("Delete should return error when file cannot be removed")
+	if err := c.Delete(key); err == nil {
+		t.Error("Delete should return error when cache entry path is a non-empty directory")
 	}
+}
+
+func cacheFilename(dir, key string) string {
+	hash := sha256.Sum256([]byte(key))
+	return filepath.Join(dir, hex.EncodeToString(hash[:])+".cache")
 }
 
 // Benchmark tests

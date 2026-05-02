@@ -37,11 +37,20 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
+    - name: Download example dependencies
+      run: cd examples && go mod download
+
     - name: Verify dependencies
       run: go mod verify
 
+    - name: Verify example dependencies
+      run: cd examples && go mod verify
+
     - name: Run tests
       run: go test -v -race -timeout 10m ./...
+
+    - name: Run example tests
+      run: cd examples && go test -v ./...
 
     - name: Run tests with coverage
       if: matrix.os == 'ubuntu-latest' && matrix.go-version == '1.23'
@@ -71,6 +80,9 @@ jobs:
 
     - name: Run go vet
       run: go vet ./...
+
+    - name: Run example go vet
+      run: cd examples && go vet ./...
 
     - name: Run gofmt
       run: |
@@ -103,8 +115,4 @@ jobs:
       run: go build -v ./...
 
     - name: Build examples
-      run: |
-        for dir in examples/*/; do
-          echo "Building $dir"
-          (cd "$dir" && go build -v .)
-        done
+      run: cd examples && go build -v ./...
