@@ -40,9 +40,9 @@ func DefaultClientOptions() *ClientOptions {
 	}
 }
 
-// NewHTTPClient creates a new HTTP client with the specified options.
+// newHTTPClient creates a new HTTP client with the specified options.
 // If opts is nil, default options are used.
-func NewHTTPClient(opts *ClientOptions) *http.Client {
+func newHTTPClient(opts *ClientOptions) *http.Client {
 	if opts == nil {
 		opts = DefaultClientOptions()
 	}

@@ -309,3 +309,38 @@ func TestAlphaVantageReader_HTTPError(t *testing.T) {
 		t.Error("ReadSingle() should return error for HTTP 500")
 	}
 }
+
+// TestAlphaVantageReader_ReadSingle_InvalidJSON tests error for invalid JSON
+func TestAlphaVantageReader_ReadSingle_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	reader := alphavantage.NewAlphaVantageReaderWithBaseURL(nil, "test_key", server.URL+"?function=TIME_SERIES_DAILY&symbol=%s&apikey=%s&outputsize=full")
+
+	ctx := context.Background()
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid JSON")
+	}
+}
+
+// TestAlphaVantageReader_Read_EmptySymbols tests error for empty symbols
+func TestAlphaVantageReader_Read_EmptySymbols(t *testing.T) {
+	reader := alphavantage.NewAlphaVantageReader(nil, "test_key")
+
+	ctx := context.Background()
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols")
+	}
+}

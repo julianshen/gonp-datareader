@@ -192,6 +192,153 @@ func TestEurostatReader_ReadSingle_InvalidDateRange(t *testing.T) {
 	}
 }
 
+func TestEurostatReader_ReadSingle_HTTPError(t *testing.T) {
+	// Create mock server that returns error status
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	reader := eurostat.NewEurostatReaderWithBaseURL(nil, server.URL+"/statistics/1.0/data/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "DEMO_R_D3DENS", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for HTTP 500")
+	}
+}
+
+func TestEurostatReader_ReadSingle_InvalidJSON(t *testing.T) {
+	// Create mock server that returns invalid JSON
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	reader := eurostat.NewEurostatReaderWithBaseURL(nil, server.URL+"/statistics/1.0/data/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "DEMO_R_D3DENS", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid JSON")
+	}
+}
+
+func TestEurostatReader_Read(t *testing.T) {
+	// Simplified JSON-stat response structure
+	jsonData := `{
+		"version": "2.0",
+		"class": "dataset",
+		"label": "Test Dataset",
+		"id": ["geo", "time"],
+		"size": [1, 2],
+		"dimension": {
+			"geo": {
+				"label": "Geopolitical entity",
+				"category": {
+					"index": {"EU27_2020": 0},
+					"label": {"EU27_2020": "European Union"}
+				}
+			},
+			"time": {
+				"label": "Time",
+				"category": {
+					"index": {"2020": 0, "2021": 1},
+					"label": {"2020": "2020", "2021": "2021"}
+				}
+			}
+		},
+		"value": [100.5, 102.3]
+	}`
+
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonData))
+	}))
+	defer server.Close()
+
+	reader := eurostat.NewEurostatReaderWithBaseURL(nil, server.URL+"/statistics/1.0/data/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2021, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.Read(ctx, []string{"DEMORD3DENS", "GDP"}, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Read() returned nil result")
+	}
+
+	// Verify we got a map
+	dataMap, ok := result.(map[string]*eurostat.ParsedData)
+	if !ok {
+		t.Fatalf("Expected map[string]*eurostat.ParsedData, got %T", result)
+	}
+
+	if len(dataMap) != 2 {
+		t.Errorf("Expected 2 entries, got %d", len(dataMap))
+	}
+}
+
+func TestEurostatReader_Read_EmptySymbols(t *testing.T) {
+	reader := eurostat.NewEurostatReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols")
+	}
+}
+
+func TestEurostatReader_Read_InvalidDateRange(t *testing.T) {
+	reader := eurostat.NewEurostatReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{"DEMO_R_D3DENS"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for invalid date range")
+	}
+}
+
+func TestEurostatReader_Read_ParallelError(t *testing.T) {
+	// Create mock server that returns error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	reader := eurostat.NewEurostatReaderWithBaseURL(nil, server.URL+"/statistics/1.0/data/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{"DEMORD3DENS"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error when fetch fails")
+	}
+}
+
 // Helper function
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))

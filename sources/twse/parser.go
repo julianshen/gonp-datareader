@@ -77,33 +77,11 @@ func rocToGregorian(rocDate string) (time.Time, error) {
 	return date, nil
 }
 
-// gregorianToROC converts a Gregorian time.Time to a ROC date string.
-//
-// The returned string is in "YYYMMDD" format where:
-//   - YYY is the ROC year (Gregorian Year - 1911)
-//   - MM is the month (01-12)
-//   - DD is the day (01-31)
-//
-// Examples:
-//   - October 31, 2025 -> "1141031" (2025 - 1911 = 114)
-//   - January 1, 2024 -> "1130101" (2024 - 1911 = 113)
-func gregorianToROC(date time.Time) string {
-	rocYear := date.Year() - rocEpochYear
-	return fmt.Sprintf("%03d%02d%02d", rocYear, date.Month(), date.Day())
-}
-
 // parseROCDate parses a ROC date string into a time.Time.
 //
 // This is an alias for rocToGregorian for consistency with common naming patterns.
 func parseROCDate(rocDate string) (time.Time, error) {
 	return rocToGregorian(rocDate)
-}
-
-// formatROCDate formats a time.Time into a ROC date string.
-//
-// This is an alias for gregorianToROC for consistency with common naming patterns.
-func formatROCDate(date time.Time) string {
-	return gregorianToROC(date)
 }
 
 // TWSEStockData represents a single stock's data in the TWSE API response.

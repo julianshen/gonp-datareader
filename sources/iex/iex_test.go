@@ -110,14 +110,32 @@ func TestCalculateDateRange(t *testing.T) {
 			want:  "3m",
 		},
 		{
+			name:  "6 months",
+			start: time.Now().AddDate(0, -6, 0),
+			end:   time.Now(),
+			want:  "6m",
+		},
+		{
 			name:  "1 year",
 			start: time.Now().AddDate(-1, 0, 0),
 			end:   time.Now(),
 			want:  "1y",
 		},
 		{
+			name:  "2 years",
+			start: time.Now().AddDate(-2, 0, 0),
+			end:   time.Now(),
+			want:  "2y",
+		},
+		{
 			name:  "5 years (max)",
 			start: time.Now().AddDate(-5, 0, 0),
+			end:   time.Now(),
+			want:  "5y",
+		},
+		{
+			name:  "more than 5 years",
+			start: time.Now().AddDate(-6, 0, 0),
 			end:   time.Now(),
 			want:  "5y",
 		},
@@ -340,5 +358,26 @@ func TestIEXReader_HTTPError(t *testing.T) {
 	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
 	if err == nil {
 		t.Error("ReadSingle() should return error for HTTP 500")
+	}
+}
+
+// TestIEXReader_ReadSingle_InvalidJSON tests error handling for invalid JSON
+func TestIEXReader_ReadSingle_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	reader := iex.NewIEXReaderWithBaseURL(nil, "test_key", server.URL+"?symbol=%s&range=%s&token=%s")
+
+	ctx := context.Background()
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid JSON")
 	}
 }

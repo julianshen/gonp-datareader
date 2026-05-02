@@ -57,10 +57,6 @@ type Options struct {
 	// Default: 1 second
 	RetryDelay time.Duration
 
-	// EnableCache enables response caching (deprecated, use CacheDir instead).
-	// Caching is automatically enabled when CacheDir is set.
-	EnableCache bool
-
 	// CacheDir specifies the directory for cached responses.
 	// If empty, caching is disabled.
 	// Cached responses are stored with SHA-256 hashed filenames.

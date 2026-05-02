@@ -238,3 +238,38 @@ func TestStooqReader_HTTPError(t *testing.T) {
 		t.Error("ReadSingle() should return error for HTTP 500")
 	}
 }
+
+// TestStooqReader_ReadSingle_InvalidCSV tests error handling for invalid CSV
+func TestStooqReader_ReadSingle_InvalidCSV(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/csv")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("not,csv,data,here\ninvalid"))
+	}))
+	defer server.Close()
+
+	reader := stooq.NewStooqReaderWithBaseURL(nil, server.URL+"?s=%s")
+
+	ctx := context.Background()
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL.US", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid CSV")
+	}
+}
+
+// TestStooqReader_Read_EmptySymbols tests error handling for empty symbol list
+func TestStooqReader_Read_EmptySymbols(t *testing.T) {
+	reader := stooq.NewStooqReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols list")
+	}
+}

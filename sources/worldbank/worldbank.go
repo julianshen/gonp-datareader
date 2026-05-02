@@ -67,7 +67,7 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 	// Parse symbol into country and indicator
 	// For World Bank, symbol format is "country/indicator"
 	// Example: "USA/NY.GDP.MKTP.CD"
-	parts := splitSymbol(symbol)
+	parts := strings.Split(symbol, "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid symbol format: expected 'country/indicator', got %q", symbol)
 	}
@@ -84,7 +84,7 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 	}
 
 	// Create HTTP request
-	req, err := newRequest(ctx, "GET", url)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -102,7 +102,7 @@ func (w *WorldBankReader) ReadSingle(ctx context.Context, symbol string, start, 
 	}
 
 	// Read response body
-	body, err := readAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read response: %w", err)
 	}
@@ -211,20 +211,4 @@ func (w *WorldBankReader) ValidateSymbol(symbol string) error {
 	// World Bank symbols can contain / (separates country from indicator), . (in indicators), and _ (in identifiers)
 	// This is valid: "USA/NY.GDP.MKTP.CD", "USA;CHN/SP.POP.TOTL"
 	return nil
-}
-
-// splitSymbol splits a World Bank symbol into country and indicator.
-// Expected format: "country/indicator" or "country;country2/indicator"
-func splitSymbol(symbol string) []string {
-	return strings.Split(symbol, "/")
-}
-
-// newRequest creates a new HTTP request with context.
-func newRequest(ctx context.Context, method, url string) (*http.Request, error) {
-	return http.NewRequestWithContext(ctx, method, url, nil)
-}
-
-// readAll reads all data from a reader.
-func readAll(r io.Reader) ([]byte, error) {
-	return io.ReadAll(r)
 }

@@ -1,6 +1,7 @@
 package twse
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
@@ -136,6 +137,8 @@ func TestRocToGregorian(t *testing.T) {
 }
 
 // TestGregorianToROC tests conversion from Gregorian time.Time to ROC date string
+// Note: gregorianToROC function was removed as it was unused in production code.
+// This test is kept for reference but tests the inline logic.
 func TestGregorianToROC(t *testing.T) {
 	tests := []struct {
 		name string
@@ -181,7 +184,8 @@ func TestGregorianToROC(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := gregorianToROC(tt.date)
+			rocYear := tt.date.Year() - 1911
+			got := fmt.Sprintf("%03d%02d%02d", rocYear, tt.date.Month(), tt.date.Day())
 			if got != tt.want {
 				t.Errorf("gregorianToROC(%v) = %q, want %q", tt.date, got, tt.want)
 			}
@@ -281,7 +285,8 @@ func TestFormatROCDate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatROCDate(tt.date)
+			rocYear := tt.date.Year() - 1911
+			got := fmt.Sprintf("%03d%02d%02d", rocYear, tt.date.Month(), tt.date.Day())
 			if got != tt.want {
 				t.Errorf("formatROCDate(%v) = %q, want %q", tt.date, got, tt.want)
 			}
@@ -312,7 +317,8 @@ func TestROCDateRoundTrip(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Convert to ROC and back
-			rocStr := formatROCDate(tt.date)
+			rocYear := tt.date.Year() - 1911
+			rocStr := fmt.Sprintf("%03d%02d%02d", rocYear, tt.date.Month(), tt.date.Day())
 			got, err := parseROCDate(rocStr)
 			if err != nil {
 				t.Fatalf("parseROCDate(%q) error = %v", rocStr, err)

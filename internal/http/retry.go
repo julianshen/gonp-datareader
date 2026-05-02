@@ -41,7 +41,7 @@ func NewRetryableClient(opts *ClientOptions) *RetryableClient {
 	}
 
 	return &RetryableClient{
-		client:      NewHTTPClient(opts),
+		client:      newHTTPClient(opts),
 		maxRetries:  opts.MaxRetries,
 		retryDelay:  opts.RetryDelay,
 		userAgent:   opts.UserAgent,

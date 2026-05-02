@@ -355,3 +355,146 @@ func TestRead_FinMind(t *testing.T) {
 		}
 	}
 }
+
+// TestDataReader_AllSources tests all data source factory registrations
+func TestDataReader_AllSources(t *testing.T) {
+	tests := []struct {
+		name       string
+		source     string
+		wantName   string
+		wantSource string
+		apiKey     string
+	}{
+		{
+			name:       "yahoo",
+			source:     "yahoo",
+			wantName:   "Yahoo Finance",
+			wantSource: "yahoo",
+		},
+		{
+			name:       "fred without api key",
+			source:     "fred",
+			wantName:   "FRED",
+			wantSource: "fred",
+		},
+		{
+			name:       "fred with api key",
+			source:     "fred",
+			wantName:   "FRED",
+			wantSource: "fred",
+			apiKey:     "test-api-key",
+		},
+		{
+			name:       "worldbank",
+			source:     "worldbank",
+			wantName:   "worldbank",
+			wantSource: "worldbank",
+		},
+		{
+			name:       "alphavantage",
+			source:     "alphavantage",
+			wantName:   "alphavantage",
+			wantSource: "alphavantage",
+			apiKey:     "test-api-key",
+		},
+		{
+			name:       "stooq",
+			source:     "stooq",
+			wantName:   "stooq",
+			wantSource: "stooq",
+		},
+		{
+			name:       "iex",
+			source:     "iex",
+			wantName:   "iex",
+			wantSource: "iex",
+			apiKey:     "test-api-key",
+		},
+		{
+			name:       "tiingo without api key",
+			source:     "tiingo",
+			wantName:   "Tiingo",
+			wantSource: "tiingo",
+		},
+		{
+			name:       "tiingo with api key",
+			source:     "tiingo",
+			wantName:   "Tiingo",
+			wantSource: "tiingo",
+			apiKey:     "test-api-key",
+		},
+		{
+			name:       "oecd",
+			source:     "oecd",
+			wantName:   "OECD",
+			wantSource: "oecd",
+		},
+		{
+			name:       "eurostat",
+			source:     "eurostat",
+			wantName:   "Eurostat",
+			wantSource: "eurostat",
+		},
+		{
+			name:       "twse",
+			source:     "twse",
+			wantName:   "Taiwan Stock Exchange",
+			wantSource: "twse",
+		},
+		{
+			name:       "finmind without api key",
+			source:     "finmind",
+			wantName:   "FinMind",
+			wantSource: "finmind",
+		},
+		{
+			name:       "finmind with api key",
+			source:     "finmind",
+			wantName:   "FinMind",
+			wantSource: "finmind",
+			apiKey:     "test-api-key",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			opts := &datareader.Options{
+				APIKey: tt.apiKey,
+			}
+			reader, err := datareader.DataReader(tt.source, opts)
+
+			if err != nil {
+				t.Fatalf("DataReader(%q) error = %v", tt.source, err)
+			}
+
+			if reader == nil {
+				t.Fatal("DataReader() returned nil reader")
+			}
+
+			if reader.Name() != tt.wantName {
+				t.Errorf("Expected name %q, got %q", tt.wantName, reader.Name())
+			}
+
+			if reader.Source() != tt.wantSource {
+				t.Errorf("Expected source %q, got %q", tt.wantSource, reader.Source())
+			}
+		})
+	}
+}
+
+// TestDataReader_NilOptions tests DataReader with nil options
+func TestDataReader_NilOptions(t *testing.T) {
+	sources := []string{"yahoo", "fred", "worldbank", "stooq", "oecd", "eurostat", "twse", "finmind"}
+
+	for _, source := range sources {
+		t.Run(source, func(t *testing.T) {
+			reader, err := datareader.DataReader(source, nil)
+			if err != nil {
+				t.Fatalf("DataReader(%q, nil) error = %v", source, err)
+			}
+			if reader == nil {
+				t.Error("DataReader() returned nil reader")
+			}
+		})
+	}
+}

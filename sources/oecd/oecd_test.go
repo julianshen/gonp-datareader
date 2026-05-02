@@ -207,6 +207,166 @@ func TestOECDReader_ReadSingle_InvalidDateRange(t *testing.T) {
 	}
 }
 
+func TestOECDReader_ReadSingle_HTTPError(t *testing.T) {
+	// Create mock server that returns error status
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	reader := oecd.NewOECDReaderWithBaseURL(nil, server.URL+"/sdmx-json/data/%s/all")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 3, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "MEI/USA", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for HTTP 500")
+	}
+}
+
+func TestOECDReader_ReadSingle_InvalidJSON(t *testing.T) {
+	// Create mock server that returns invalid JSON
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	reader := oecd.NewOECDReaderWithBaseURL(nil, server.URL+"/sdmx-json/data/%s/all")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 3, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "MEI/USA", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid JSON")
+	}
+}
+
+func TestOECDReader_Read(t *testing.T) {
+	// Simplified SDMX-JSON response structure
+	jsonData := `{
+		"header": {
+			"id": "test",
+			"prepared": "2020-01-01T00:00:00Z"
+		},
+		"dataSets": [{
+			"observations": {
+				"0:0:0:0": [150.5],
+				"0:0:0:1": [152.3]
+			}
+		}],
+		"structure": {
+			"dimensions": {
+				"observation": [
+					{
+						"id": "LOCATION",
+						"values": [{"id": "USA"}]
+					},
+					{
+						"id": "INDICATOR",
+						"values": [{"id": "GDP"}]
+					},
+					{
+						"id": "MEASURE",
+						"values": [{"id": "IDX"}]
+					},
+					{
+						"id": "TIME_PERIOD",
+						"values": [
+							{"id": "2020-01"},
+							{"id": "2020-02"}
+						]
+					}
+				]
+			}
+		}
+	}`
+
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(jsonData))
+	}))
+	defer server.Close()
+
+	reader := oecd.NewOECDReaderWithBaseURL(nil, server.URL+"/sdmx-json/data/%s/all")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 2, 29, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.Read(ctx, []string{"MEIUSA", "QNAAUS"}, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	if result == nil {
+		t.Fatal("Read() returned nil result")
+	}
+
+	// Verify we got a map
+	dataMap, ok := result.(map[string]*oecd.ParsedData)
+	if !ok {
+		t.Fatalf("Expected map[string]*oecd.ParsedData, got %T", result)
+	}
+
+	if len(dataMap) != 2 {
+		t.Errorf("Expected 2 entries, got %d", len(dataMap))
+	}
+}
+
+func TestOECDReader_Read_EmptySymbols(t *testing.T) {
+	reader := oecd.NewOECDReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols")
+	}
+}
+
+func TestOECDReader_Read_InvalidDateRange(t *testing.T) {
+	reader := oecd.NewOECDReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 12, 31, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{"MEIUSA"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for invalid date range")
+	}
+}
+
+func TestOECDReader_Read_ParallelError(t *testing.T) {
+	// Create mock server that returns error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer server.Close()
+
+	reader := oecd.NewOECDReaderWithBaseURL(nil, server.URL+"/sdmx-json/data/%s/all")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 3, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{"MEIUSA"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error when fetch fails")
+	}
+}
+
 // Helper function
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && findSubstring(s, substr))

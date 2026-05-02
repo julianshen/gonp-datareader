@@ -224,6 +224,58 @@ func TestYahooReader_ReadSingle_InvalidDateRange(t *testing.T) {
 	}
 }
 
+func TestYahooReader_Read_EmptySymbols(t *testing.T) {
+	reader := yahoo.NewYahooReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols")
+	}
+}
+
+func TestYahooReader_ReadSingle_HTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Internal Server Error"))
+	}))
+	defer server.Close()
+
+	reader := yahoo.NewYahooReaderWithBaseURL(nil, server.URL+"/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for HTTP 500")
+	}
+}
+
+func TestYahooReader_ReadSingle_InvalidCSV(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/csv")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("not,csv,data\ninvalid"))
+	}))
+	defer server.Close()
+
+	reader := yahoo.NewYahooReaderWithBaseURL(nil, server.URL+"/%s")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 1, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "AAPL", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid CSV")
+	}
+}
+
 func TestYahooReader_Read_MultipleSymbols(t *testing.T) {
 	csvData := `Date,Open,High,Low,Close,Adj Close,Volume
 2020-01-02,296.24,300.60,295.19,300.35,297.45,33911900`

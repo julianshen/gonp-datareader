@@ -380,6 +380,88 @@ func TestTiingoReader_APIKeyFromContext(t *testing.T) {
 	}
 }
 
+// TestTiingoParser_GetColumn tests the GetColumn method
+func TestTiingoParser_GetColumn(t *testing.T) {
+	data := &tiingo.ParsedData{
+		Dates: []string{"2020-01-02", "2020-01-03"},
+		Prices: []tiingo.PriceData{
+			{Close: 300.35, Open: 296.24, High: 300.60, Low: 295.19, Volume: 33911900},
+			{Close: 297.43, Open: 297.15, High: 300.58, Low: 296.50, Volume: 36607600},
+		},
+	}
+
+	tests := []struct {
+		name     string
+		colName  string
+		expected []string
+	}{
+		{
+			name:     "Date column",
+			colName:  "Date",
+			expected: []string{"2020-01-02", "2020-01-03"},
+		},
+		{
+			name:     "Close column",
+			colName:  "Close",
+			expected: []string{"300.35", "297.43"},
+		},
+		{
+			name:     "Open column",
+			colName:  "Open",
+			expected: []string{"296.24", "297.15"},
+		},
+		{
+			name:     "High column",
+			colName:  "High",
+			expected: []string{"300.6", "300.58"},
+		},
+		{
+			name:     "Low column",
+			colName:  "Low",
+			expected: []string{"295.19", "296.5"},
+		},
+		{
+			name:     "Volume column",
+			colName:  "Volume",
+			expected: []string{"33911900", "36607600"},
+		},
+		{
+			name:     "Invalid column",
+			colName:  "Invalid",
+			expected: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := data.GetColumn(tt.colName)
+			if tt.expected == nil {
+				if result != nil {
+					t.Errorf("GetColumn(%q) expected nil, got %v", tt.colName, result)
+				}
+				return
+			}
+			if len(result) != len(tt.expected) {
+				t.Fatalf("GetColumn(%q) expected %d items, got %d", tt.colName, len(tt.expected), len(result))
+			}
+			for i, v := range tt.expected {
+				if result[i] != v {
+					t.Errorf("GetColumn(%q)[%d] = %q, want %q", tt.colName, i, result[i], v)
+				}
+			}
+		})
+	}
+}
+
+// TestTiingoParser_GetColumn_NilReceiver tests GetColumn with nil receiver
+func TestTiingoParser_GetColumn_NilReceiver(t *testing.T) {
+	var data *tiingo.ParsedData
+	result := data.GetColumn("Date")
+	if result != nil {
+		t.Errorf("GetColumn on nil receiver should return nil, got %v", result)
+	}
+}
+
 // TestTiingoReader_Read_EmptySymbols tests error handling for empty symbol list
 func TestTiingoReader_Read_EmptySymbols(t *testing.T) {
 	reader := tiingo.NewTiingoReader(nil)

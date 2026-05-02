@@ -52,8 +52,7 @@ func TestOptions_CustomValues(t *testing.T) {
 		{
 			name: "with cache enabled",
 			opts: &datareader.Options{
-				EnableCache: true,
-				CacheDir:    "/tmp/cache",
+				CacheDir: "/tmp/cache",
 			},
 		},
 		{

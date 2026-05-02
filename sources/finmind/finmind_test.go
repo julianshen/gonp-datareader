@@ -407,3 +407,123 @@ func TestFinMindReader_Read_EmptySymbols(t *testing.T) {
 		t.Errorf("Expected empty map, got %d entries", len(dataMap))
 	}
 }
+
+func TestFinMindReader_SetToken(t *testing.T) {
+	// Create mock server that checks Authorization header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verify Authorization header
+		authHeader := r.Header.Get("Authorization")
+		expectedAuth := "Bearer new-token-456"
+		if authHeader != expectedAuth {
+			t.Errorf("Expected Authorization header %q, got %q", expectedAuth, authHeader)
+		}
+
+		// Return mock response
+		mockData := map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"date":             "2020-04-06",
+					"stock_id":         "2330",
+					"Trading_Volume":   59712754,
+					"Trading_money":    16324198154,
+					"open":             273.0,
+					"max":              275.5,
+					"min":              270.0,
+					"close":            275.5,
+					"spread":           4.0,
+					"Trading_turnover": 19971,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	// Create reader without token
+	reader := finmind.NewFinMindReaderWithEndpoint(nil, server.URL)
+
+	// Set token after creation
+	reader.SetToken("new-token-456")
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	result, err := reader.ReadSingle(ctx, "2330", start, end)
+	if err != nil {
+		t.Fatalf("ReadSingle() error = %v", err)
+	}
+
+	data := result.(*finmind.ParsedData)
+	if data.Symbol != "2330" {
+		t.Errorf("Expected symbol '2330', got %q", data.Symbol)
+	}
+}
+
+func TestFinMindReader_Read_SingleSymbol(t *testing.T) {
+	// Create mock server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		symbol := r.URL.Query().Get("data_id")
+
+		mockData := map[string]interface{}{
+			"data": []map[string]interface{}{
+				{
+					"date":             "2020-04-06",
+					"stock_id":         symbol,
+					"Trading_Volume":   59712754,
+					"Trading_money":    16324198154,
+					"open":             273.0,
+					"max":              275.5,
+					"min":              270.0,
+					"close":            275.5,
+					"spread":           4.0,
+					"Trading_turnover": 19971,
+				},
+			},
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(mockData)
+	}))
+	defer server.Close()
+
+	reader := finmind.NewFinMindReaderWithEndpoint(nil, server.URL)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+
+	// Read with single symbol - should use ReadSingle path
+	result, err := reader.Read(ctx, []string{"2330"}, start, end)
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+
+	dataMap := result.(map[string]*finmind.ParsedData)
+	if len(dataMap) != 1 {
+		t.Fatalf("Expected 1 symbol, got %d", len(dataMap))
+	}
+
+	data, ok := dataMap["2330"]
+	if !ok {
+		t.Fatal("Missing data for symbol 2330")
+	}
+	if data.Symbol != "2330" {
+		t.Errorf("Expected symbol '2330', got %q", data.Symbol)
+	}
+}
+
+func TestFinMindReader_Read_InvalidDateRange(t *testing.T) {
+	reader := finmind.NewFinMindReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 4, 12, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2020, 4, 2, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{"2330"}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for invalid date range")
+	}
+}

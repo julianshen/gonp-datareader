@@ -296,3 +296,38 @@ func TestWorldBankReader_HTTPError(t *testing.T) {
 		t.Error("ReadSingle() should return error for HTTP 500")
 	}
 }
+
+// TestWorldBankReader_ReadSingle_InvalidJSON tests error for invalid JSON
+func TestWorldBankReader_ReadSingle_InvalidJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("invalid json"))
+	}))
+	defer server.Close()
+
+	reader := worldbank.NewWorldBankReaderWithBaseURL(nil, server.URL+"?country=%s&indicator=%s&start=%d&end=%d")
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.ReadSingle(ctx, "USA/NY.GDP.MKTP.CD", start, end)
+	if err == nil {
+		t.Error("ReadSingle() should return error for invalid JSON")
+	}
+}
+
+// TestWorldBankReader_Read_EmptySymbols tests error for empty symbols
+func TestWorldBankReader_Read_EmptySymbols(t *testing.T) {
+	reader := worldbank.NewWorldBankReader(nil)
+
+	ctx := context.Background()
+	start := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 12, 31, 0, 0, 0, 0, time.UTC)
+
+	_, err := reader.Read(ctx, []string{}, start, end)
+	if err == nil {
+		t.Error("Read() should return error for empty symbols")
+	}
+}
