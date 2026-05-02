@@ -16,13 +16,13 @@ import (
 )
 
 const (
-	tpexBaseURL       = "https://www.tpex.org.tw/openapi"
+	tpexBaseURL       = "https://www.tpex.org.tw/openapi/v1"
 	mainboardEndpoint = "/tpex_mainboard_daily_close_quotes"
 	emergingEndpoint  = "/tpex_esb_latest_statistics"
 	indexEndpoint     = "/tpex_index"
 )
 
-var tpexNumericSymbolPattern = regexp.MustCompile(`^[0-9]{4}$|^[0-9]{6}$`)
+var tpexSymbolPattern = regexp.MustCompile(`^[0-9A-Z]{4,6}$`)
 
 // TPEXReader fetches data from Taipei Exchange.
 type TPEXReader struct {
@@ -66,12 +66,12 @@ func (t *TPEXReader) ValidateSymbol(symbol string) error {
 	}
 	if strings.HasPrefix(symbol, "esb:") {
 		code := strings.TrimPrefix(symbol, "esb:")
-		if tpexNumericSymbolPattern.MatchString(code) {
+		if tpexSymbolPattern.MatchString(code) {
 			return nil
 		}
-		return fmt.Errorf("invalid TPEX emerging stock symbol format: %q (must be esb:<4 or 6 digits>)", symbol)
+		return fmt.Errorf("invalid TPEX emerging stock symbol format: %q (must be esb:<4 to 6 uppercase alphanumeric characters>)", symbol)
 	}
-	if tpexNumericSymbolPattern.MatchString(symbol) {
+	if tpexSymbolPattern.MatchString(symbol) {
 		return nil
 	}
 	return fmt.Errorf("invalid TPEX symbol format: %q", symbol)
@@ -117,12 +117,54 @@ func (t *TPEXReader) Read(ctx context.Context, symbols []string, start, end time
 	}
 
 	result := make(map[string]*ParsedData, len(symbols))
+	mainboardSymbols := make([]string, 0, len(symbols))
+	emergingSymbols := make([]string, 0, len(symbols))
+	readIndex := false
 	for _, symbol := range symbols {
-		data, err := t.ReadSingle(ctx, symbol, start, end)
-		if err != nil {
-			return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
+		switch {
+		case symbol == "index":
+			readIndex = true
+		case strings.HasPrefix(symbol, "esb:"):
+			emergingSymbols = append(emergingSymbols, symbol)
+		default:
+			mainboardSymbols = append(mainboardSymbols, symbol)
 		}
-		result[symbol] = data.(*ParsedData)
+	}
+
+	if len(mainboardSymbols) > 0 {
+		rows, err := t.readMainboardRows(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, symbol := range mainboardSymbols {
+			data, err := parseMainboardSymbol(rows, symbol)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
+			}
+			result[symbol] = filterByDateRange(data, start, end)
+		}
+	}
+
+	if len(emergingSymbols) > 0 {
+		rows, err := t.readEmergingRows(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, symbol := range emergingSymbols {
+			data, err := parseEmergingSymbol(rows, symbol)
+			if err != nil {
+				return nil, fmt.Errorf("failed to read %s: %w", symbol, err)
+			}
+			result[symbol] = filterByDateRange(data, start, end)
+		}
+	}
+
+	if readIndex {
+		data, err := t.readIndex(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read index: %w", err)
+		}
+		result["index"] = filterByDateRange(data, start, end)
 	}
 	return result, nil
 }
@@ -139,14 +181,22 @@ func (t *TPEXReader) readBySymbol(ctx context.Context, symbol string) (*ParsedDa
 }
 
 func (t *TPEXReader) readMainboard(ctx context.Context, symbol string) (*ParsedData, error) {
+	rows, err := t.readMainboardRows(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return parseMainboardSymbol(rows, symbol)
+}
+
+func (t *TPEXReader) readMainboardRows(ctx context.Context) ([]tpexMainboardQuote, error) {
 	body, err := t.get(ctx, mainboardEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := parseMainboardJSON(body)
-	if err != nil {
-		return nil, err
-	}
+	return parseMainboardJSON(body)
+}
+
+func parseMainboardSymbol(rows []tpexMainboardQuote, symbol string) (*ParsedData, error) {
 	row, err := filterMainboardBySymbol(rows, symbol)
 	if err != nil {
 		return nil, err
@@ -155,14 +205,22 @@ func (t *TPEXReader) readMainboard(ctx context.Context, symbol string) (*ParsedD
 }
 
 func (t *TPEXReader) readEmerging(ctx context.Context, symbol string) (*ParsedData, error) {
+	rows, err := t.readEmergingRows(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return parseEmergingSymbol(rows, symbol)
+}
+
+func (t *TPEXReader) readEmergingRows(ctx context.Context) ([]tpexEmergingQuote, error) {
 	body, err := t.get(ctx, emergingEndpoint)
 	if err != nil {
 		return nil, err
 	}
-	rows, err := parseEmergingJSON(body)
-	if err != nil {
-		return nil, err
-	}
+	return parseEmergingJSON(body)
+}
+
+func parseEmergingSymbol(rows []tpexEmergingQuote, symbol string) (*ParsedData, error) {
 	row, err := filterEmergingBySymbol(rows, symbol)
 	if err != nil {
 		return nil, err
@@ -179,15 +237,7 @@ func (t *TPEXReader) readIndex(ctx context.Context) (*ParsedData, error) {
 	if err != nil {
 		return nil, err
 	}
-	combined := &ParsedData{Symbol: "index", Name: "TPEx Index"}
-	for _, row := range rows {
-		data, err := parseIndexData(row)
-		if err != nil {
-			return nil, err
-		}
-		appendParsedData(combined, data)
-	}
-	return combined, nil
+	return parseIndexRows(rows)
 }
 
 func (t *TPEXReader) get(ctx context.Context, endpoint string) ([]byte, error) {
@@ -201,6 +251,11 @@ func (t *TPEXReader) get(ctx context.Context, endpoint string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
+		detailBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		detail := strings.TrimSpace(string(detailBytes))
+		if detail != "" {
+			return nil, fmt.Errorf("HTTP %d: %s: %s", resp.StatusCode, resp.Status, detail)
+		}
 		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, resp.Status)
 	}
 	body, err := io.ReadAll(resp.Body)

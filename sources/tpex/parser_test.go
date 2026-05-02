@@ -1,6 +1,7 @@
 package tpex
 
 import (
+	"math"
 	"testing"
 	"time"
 )
@@ -65,8 +66,6 @@ func TestParseNumber(t *testing.T) {
 		{input: "64.75", want: 64.75},
 		{input: "+0.35", want: 0.35},
 		{input: "1,234.50", want: 1234.50},
-		{input: "", want: 0},
-		{input: "-", want: 0},
 	}
 
 	for _, tt := range tests {
@@ -76,6 +75,18 @@ func TestParseNumber(t *testing.T) {
 		}
 		if got != tt.want {
 			t.Fatalf("parseFloat(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+func TestParseNumberSentinelsAsNaN(t *testing.T) {
+	for _, input := range []string{"", "-", "--", "---", " --- "} {
+		got, err := parseFloat(input)
+		if err != nil {
+			t.Fatalf("parseFloat(%q) error = %v", input, err)
+		}
+		if !math.IsNaN(got) {
+			t.Fatalf("parseFloat(%q) = %v, want NaN", input, got)
 		}
 	}
 }
@@ -102,7 +113,7 @@ func TestParseInvalidNumbers(t *testing.T) {
 }
 
 func TestParseMainboardStockData(t *testing.T) {
-	stock := TPEXMainboardQuote{
+	stock := tpexMainboardQuote{
 		Date:                  "2025/10/31",
 		SecuritiesCompanyCode: "8069",
 		CompanyName:           "元太",
@@ -132,7 +143,7 @@ func TestParseMainboardStockData(t *testing.T) {
 }
 
 func TestParseMainboardStockDataErrors(t *testing.T) {
-	stock := TPEXMainboardQuote{
+	stock := tpexMainboardQuote{
 		Date:                  "2025/10/31",
 		SecuritiesCompanyCode: "8069",
 		Open:                  "bad",
@@ -143,7 +154,7 @@ func TestParseMainboardStockDataErrors(t *testing.T) {
 }
 
 func TestParseEmergingStockData(t *testing.T) {
-	stock := TPEXEmergingQuote{
+	stock := tpexEmergingQuote{
 		Date:                  "2025/10/31",
 		SecuritiesCompanyCode: "6871",
 		CompanyName:           "訊芯",
@@ -162,7 +173,7 @@ func TestParseEmergingStockData(t *testing.T) {
 	if got.Symbol != "esb:6871" || got.Name != "訊芯" {
 		t.Fatalf("symbol/name = %q/%q", got.Symbol, got.Name)
 	}
-	if got.Open[0] != 95.10 || got.High[0] != 98.20 || got.Low[0] != 93.00 || got.Close[0] != 97.50 {
+	if !math.IsNaN(got.Open[0]) || got.High[0] != 98.20 || got.Low[0] != 93.00 || got.Close[0] != 97.50 {
 		t.Fatalf("OHLC = %v/%v/%v/%v", got.Open, got.High, got.Low, got.Close)
 	}
 	if got.Volume[0] != 1250 {
@@ -171,18 +182,61 @@ func TestParseEmergingStockData(t *testing.T) {
 }
 
 func TestParseEmergingStockDataErrors(t *testing.T) {
-	stock := TPEXEmergingQuote{
-		Date:                  "2025/10/31",
-		SecuritiesCompanyCode: "6871",
-		Highest:               "bad",
+	tests := []struct {
+		name  string
+		stock tpexEmergingQuote
+	}{
+		{
+			name: "bad high",
+			stock: tpexEmergingQuote{
+				Date:                  "2025/10/31",
+				SecuritiesCompanyCode: "6871",
+				Highest:               "bad",
+			},
+		},
+		{
+			name: "bad low",
+			stock: tpexEmergingQuote{
+				Date:                  "2025/10/31",
+				SecuritiesCompanyCode: "6871",
+				Highest:               "2",
+				Lowest:                "bad",
+			},
+		},
+		{
+			name: "bad latest price",
+			stock: tpexEmergingQuote{
+				Date:                  "2025/10/31",
+				SecuritiesCompanyCode: "6871",
+				Highest:               "2",
+				Lowest:                "1",
+				LatestPrice:           "bad",
+			},
+		},
+		{
+			name: "bad transaction volume",
+			stock: tpexEmergingQuote{
+				Date:                  "2025/10/31",
+				SecuritiesCompanyCode: "6871",
+				Highest:               "2",
+				Lowest:                "1",
+				LatestPrice:           "1.5",
+				TransactionVolume:     "bad",
+			},
+		},
 	}
-	if _, err := parseEmergingData(stock); err == nil {
-		t.Fatal("parseEmergingData() error = nil, want error")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := parseEmergingData(tt.stock); err == nil {
+				t.Fatal("parseEmergingData() error = nil, want error")
+			}
+		})
 	}
 }
 
 func TestParseIndexData(t *testing.T) {
-	row := TPEXIndexData{
+	row := tpexIndexData{
 		Date:   "2025/10/31",
 		Open:   "250.10",
 		High:   "252.20",
@@ -208,13 +262,13 @@ func TestParseIndexData(t *testing.T) {
 }
 
 func TestParseIndexDataErrors(t *testing.T) {
-	if _, err := parseIndexData(TPEXIndexData{Date: "bad"}); err == nil {
+	if _, err := parseIndexData(tpexIndexData{Date: "bad"}); err == nil {
 		t.Fatal("parseIndexData() error = nil, want error")
 	}
 }
 
 func TestFilterEmergingBySymbolNotFound(t *testing.T) {
-	_, err := filterEmergingBySymbol([]TPEXEmergingQuote{{SecuritiesCompanyCode: "6871"}}, "esb:9999")
+	_, err := filterEmergingBySymbol([]tpexEmergingQuote{{SecuritiesCompanyCode: "6871"}}, "esb:9999")
 	if err == nil {
 		t.Fatal("filterEmergingBySymbol() error = nil, want error")
 	}

@@ -32,10 +32,11 @@ func TestTPEXReader_ValidateSymbol(t *testing.T) {
 		wantErr bool
 	}{
 		{symbol: "8069"},
+		{symbol: "00679B"},
 		{symbol: "esb:6871"},
 		{symbol: "index"},
 		{symbol: "", wantErr: true},
-		{symbol: "AAPL", wantErr: true},
+		{symbol: "AAPL.US", wantErr: true},
 		{symbol: "esb:", wantErr: true},
 	}
 
@@ -56,15 +57,15 @@ func TestBuildEndpointURL(t *testing.T) {
 	}{
 		{
 			name:     "without trailing slash",
-			baseURL:  "https://www.tpex.org.tw/openapi",
+			baseURL:  "https://www.tpex.org.tw/openapi/v1",
 			endpoint: mainboardEndpoint,
-			want:     "https://www.tpex.org.tw/openapi/tpex_mainboard_daily_close_quotes",
+			want:     "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes",
 		},
 		{
 			name:     "with trailing slash",
-			baseURL:  "https://www.tpex.org.tw/openapi/",
+			baseURL:  "https://www.tpex.org.tw/openapi/v1/",
 			endpoint: indexEndpoint,
-			want:     "https://www.tpex.org.tw/openapi/tpex_index",
+			want:     "https://www.tpex.org.tw/openapi/v1/tpex_index",
 		},
 	}
 
@@ -78,7 +79,7 @@ func TestBuildEndpointURL(t *testing.T) {
 
 func TestTPEXReader_BuildURL(t *testing.T) {
 	reader := NewTPEXReader(nil)
-	if got := reader.BuildURL(); got != "https://www.tpex.org.tw/openapi/tpex_mainboard_daily_close_quotes" {
+	if got := reader.BuildURL(); got != "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes" {
 		t.Fatalf("BuildURL() = %q", got)
 	}
 }
@@ -88,7 +89,7 @@ func TestTPEXReader_ReadSingle_RoutesMainboard(t *testing.T) {
 		if r.URL.Path != mainboardEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, mainboardEndpoint)
 		}
-		json.NewEncoder(w).Encode([]TPEXMainboardQuote{{
+		json.NewEncoder(w).Encode([]tpexMainboardQuote{{
 			Date:                  "2025/10/31",
 			SecuritiesCompanyCode: "8069",
 			CompanyName:           "元太",
@@ -112,7 +113,7 @@ func TestTPEXReader_ReadSingle_RoutesEmerging(t *testing.T) {
 		if r.URL.Path != emergingEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, emergingEndpoint)
 		}
-		json.NewEncoder(w).Encode([]TPEXEmergingQuote{{
+		json.NewEncoder(w).Encode([]tpexEmergingQuote{{
 			Date:                  "2025/10/31",
 			SecuritiesCompanyCode: "6871",
 			CompanyName:           "訊芯",
@@ -135,7 +136,7 @@ func TestTPEXReader_ReadSingle_RoutesIndex(t *testing.T) {
 		if r.URL.Path != indexEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, indexEndpoint)
 		}
-		json.NewEncoder(w).Encode([]TPEXIndexData{
+		json.NewEncoder(w).Encode([]tpexIndexData{
 			{Date: "2025/10/30", Open: "250.10", High: "252.20", Low: "249.30", Close: "251.80"},
 			{Date: "2025/10/31", Open: "251.80", High: "253.00", Low: "250.50", Close: "252.40"},
 		})
@@ -149,12 +150,40 @@ func TestTPEXReader_ReadSingle_RoutesIndex(t *testing.T) {
 
 func TestTPEXReader_ReadSingle_NotFound(t *testing.T) {
 	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode([]TPEXMainboardQuote{})
+		json.NewEncoder(w).Encode([]tpexMainboardQuote{})
 	})
 
 	_, err := reader.ReadSingle(context.Background(), "8069", testStart(), testEnd())
 	if err == nil || !strings.Contains(err.Error(), "not found") {
 		t.Fatalf("ReadSingle() error = %v, want not found", err)
+	}
+}
+
+func TestTPEXReader_ReadSingle_IndexNoData(t *testing.T) {
+	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != indexEndpoint {
+			t.Fatalf("path = %q, want %q", r.URL.Path, indexEndpoint)
+		}
+		json.NewEncoder(w).Encode([]tpexIndexData{})
+	})
+
+	_, err := reader.ReadSingle(context.Background(), "index", testStart(), testEnd())
+	if err == nil || !strings.Contains(err.Error(), "no index data") {
+		t.Fatalf("ReadSingle() error = %v, want no index data", err)
+	}
+}
+
+func TestTPEXReader_ReadSingle_FiltersIndexDateRange(t *testing.T) {
+	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
+		json.NewEncoder(w).Encode([]tpexIndexData{
+			{Date: "2025/09/30", Open: "1", High: "2", Low: "3", Close: "4"},
+			{Date: "2025/10/31", Open: "5", High: "6", Low: "7", Close: "8"},
+		})
+	})
+
+	got := mustReadSingle(t, reader, "index")
+	if len(got.Date) != 1 || got.Close[0] != 8 {
+		t.Fatalf("filtered index data = %+v, want one in-range row", got)
 	}
 }
 
@@ -236,7 +265,7 @@ func TestTPEXReader_Read(t *testing.T) {
 	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case mainboardEndpoint:
-			json.NewEncoder(w).Encode([]TPEXMainboardQuote{{
+			json.NewEncoder(w).Encode([]tpexMainboardQuote{{
 				Date:                  "2025/10/31",
 				SecuritiesCompanyCode: "8069",
 				CompanyName:           "元太",
@@ -246,7 +275,7 @@ func TestTPEXReader_Read(t *testing.T) {
 				Close:                 "216.50",
 			}})
 		case emergingEndpoint:
-			json.NewEncoder(w).Encode([]TPEXEmergingQuote{{
+			json.NewEncoder(w).Encode([]tpexEmergingQuote{{
 				Date:                  "2025/10/31",
 				SecuritiesCompanyCode: "6871",
 				CompanyName:           "訊芯",
@@ -256,7 +285,7 @@ func TestTPEXReader_Read(t *testing.T) {
 				LatestPrice:           "97.50",
 			}})
 		case indexEndpoint:
-			json.NewEncoder(w).Encode([]TPEXIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
+			json.NewEncoder(w).Encode([]tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -269,6 +298,34 @@ func TestTPEXReader_Read(t *testing.T) {
 	data := result.(map[string]*ParsedData)
 	if len(data) != 3 || data["8069"].Close[0] != 216.50 || data["esb:6871"].Close[0] != 97.50 || data["index"].Close[0] != 4 {
 		t.Fatalf("Read() = %+v", data)
+	}
+}
+
+func TestTPEXReader_Read_FetchesEachEndpointOnce(t *testing.T) {
+	counts := map[string]int{}
+	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
+		counts[r.URL.Path]++
+		switch r.URL.Path {
+		case mainboardEndpoint:
+			json.NewEncoder(w).Encode([]tpexMainboardQuote{
+				{Date: "2025/10/31", SecuritiesCompanyCode: "8069", CompanyName: "元太", Open: "1", High: "2", Low: "3", Close: "4"},
+				{Date: "2025/10/31", SecuritiesCompanyCode: "00679B", CompanyName: "元大美債20年", Open: "5", High: "6", Low: "7", Close: "8"},
+			})
+		case emergingEndpoint:
+			json.NewEncoder(w).Encode([]tpexEmergingQuote{{Date: "2025/10/31", SecuritiesCompanyCode: "6871", CompanyName: "訊芯", Highest: "2", Lowest: "1", LatestPrice: "1.5"}})
+		case indexEndpoint:
+			json.NewEncoder(w).Encode([]tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
+		default:
+			t.Fatalf("unexpected path %q", r.URL.Path)
+		}
+	})
+
+	_, err := reader.Read(context.Background(), []string{"8069", "00679B", "esb:6871", "index"}, testStart(), testEnd())
+	if err != nil {
+		t.Fatalf("Read() error = %v", err)
+	}
+	if counts[mainboardEndpoint] != 1 || counts[emergingEndpoint] != 1 || counts[indexEndpoint] != 1 {
+		t.Fatalf("endpoint counts = %+v, want one fetch per endpoint", counts)
 	}
 }
 
@@ -287,6 +344,47 @@ func TestTPEXReader_Read_ValidationErrors(t *testing.T) {
 	_, err = reader.Read(context.Background(), []string{"8069"}, testEnd(), testStart())
 	if err == nil || !strings.Contains(err.Error(), "invalid date range") {
 		t.Fatalf("Read invalid date error = %v", err)
+	}
+}
+
+func TestTPEXReader_Read_PropagatesGroupedReadErrors(t *testing.T) {
+	tests := []struct {
+		name    string
+		symbols []string
+		path    string
+		body    string
+		want    string
+	}{
+		{
+			name:    "emerging not found",
+			symbols: []string{"esb:9999"},
+			path:    emergingEndpoint,
+			body:    `[{"Date":"2025/10/31","SecuritiesCompanyCode":"6871","Highest":"2","Lowest":"1","LatestPrice":"1.5"}]`,
+			want:    "not found",
+		},
+		{
+			name:    "index no data",
+			symbols: []string{"index"},
+			path:    indexEndpoint,
+			body:    `[]`,
+			want:    "no index data",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != tt.path {
+					t.Fatalf("path = %q, want %q", r.URL.Path, tt.path)
+				}
+				w.Write([]byte(tt.body))
+			})
+
+			_, err := reader.Read(context.Background(), tt.symbols, testStart(), testEnd())
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("Read() error = %v, want %q", err, tt.want)
+			}
+		})
 	}
 }
 

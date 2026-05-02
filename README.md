@@ -74,7 +74,7 @@ func main() {
 | **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
 | **eurostat** | Eurostat - European Union statistics | No | `DEMO_R_D3DENS`, `GDP` |
 | **twse** | Taiwan Stock Exchange - Taiwan stock market data | No | `2330`, `0050` |
-| **tpex** | Taipei Exchange - OTC, emerging stock, and index data | No | `8069`, `esb:6871`, `index` |
+| **tpex** | Taipei Exchange - OTC, emerging stock, and index data | No | `8069`, `00679B`, `esb:6871`, `index` |
 | **finmind** | FinMind - Taiwan & international financial data (50+ datasets) | Optional** | `2330`, `AAPL` |
 
 *FRED works without an API key but has lower rate limits

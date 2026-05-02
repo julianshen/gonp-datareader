@@ -575,7 +575,7 @@ TPEX provides official Taipei Exchange OpenAPI datasets for OTC stocks, emerging
 **No** - Free access without registration
 
 ### Symbol Format
-- **Mainboard OTC stocks**: `CODE` (e.g., `8069`)
+- **Mainboard OTC stocks**: `CODE` (e.g., `8069`, `00679B`)
 - **Emerging stocks**: `esb:CODE` (e.g., `esb:6871`)
 - **OTC index history**: `index`
 

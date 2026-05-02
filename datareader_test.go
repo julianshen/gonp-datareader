@@ -450,6 +450,12 @@ func TestDataReader_AllSources(t *testing.T) {
 			wantSource: "twse",
 		},
 		{
+			name:       "tpex",
+			source:     "tpex",
+			wantName:   "Taipei Exchange",
+			wantSource: "tpex",
+		},
+		{
 			name:       "finmind without api key",
 			source:     "finmind",
 			wantName:   "FinMind",
@@ -492,7 +498,7 @@ func TestDataReader_AllSources(t *testing.T) {
 
 // TestDataReader_NilOptions tests DataReader with nil options
 func TestDataReader_NilOptions(t *testing.T) {
-	sources := []string{"yahoo", "fred", "worldbank", "stooq", "oecd", "eurostat", "twse", "finmind"}
+	sources := []string{"yahoo", "fred", "worldbank", "stooq", "oecd", "eurostat", "twse", "tpex", "finmind"}
 
 	for _, source := range sources {
 		t.Run(source, func(t *testing.T) {

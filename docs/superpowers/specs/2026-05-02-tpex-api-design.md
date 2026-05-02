@@ -41,7 +41,7 @@ Emerging stock fields map as:
 - `LatestPrice` -> `Close`
 - `Highest` -> `High`
 - `Lowest` -> `Low`
-- `Average` -> `Open`
+- `Open` and `Change` remain unavailable because the endpoint does not publish those values
 - `TransactionVolume` -> `Volume`
 
 Index fields map as:

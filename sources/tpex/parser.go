@@ -3,6 +3,7 @@ package tpex
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -10,8 +11,8 @@ import (
 
 const rocEpochYear = 1911
 
-// TPEXMainboardQuote represents one row from /tpex_mainboard_daily_close_quotes.
-type TPEXMainboardQuote struct {
+// tpexMainboardQuote represents one row from /tpex_mainboard_daily_close_quotes.
+type tpexMainboardQuote struct {
 	Date                  string `json:"Date"`
 	SecuritiesCompanyCode string `json:"SecuritiesCompanyCode"`
 	CompanyName           string `json:"CompanyName"`
@@ -24,8 +25,8 @@ type TPEXMainboardQuote struct {
 	TransactionNumber     string `json:"TransactionNumber"`
 }
 
-// TPEXEmergingQuote represents one row from /tpex_esb_latest_statistics.
-type TPEXEmergingQuote struct {
+// tpexEmergingQuote represents one row from /tpex_esb_latest_statistics.
+type tpexEmergingQuote struct {
 	Date                  string `json:"Date"`
 	SecuritiesCompanyCode string `json:"SecuritiesCompanyCode"`
 	CompanyName           string `json:"CompanyName"`
@@ -36,8 +37,8 @@ type TPEXEmergingQuote struct {
 	TransactionVolume     string `json:"TransactionVolume"`
 }
 
-// TPEXIndexData represents one row from /tpex_index.
-type TPEXIndexData struct {
+// tpexIndexData represents one row from /tpex_index.
+type tpexIndexData struct {
 	Date   string `json:"Date"`
 	Open   string `json:"Open"`
 	High   string `json:"High"`
@@ -60,31 +61,31 @@ type ParsedData struct {
 	Change       []float64
 }
 
-func parseMainboardJSON(data []byte) ([]TPEXMainboardQuote, error) {
-	var rows []TPEXMainboardQuote
+func parseMainboardJSON(data []byte) ([]tpexMainboardQuote, error) {
+	var rows []tpexMainboardQuote
 	if err := json.Unmarshal(data, &rows); err != nil {
 		return nil, fmt.Errorf("unmarshal mainboard JSON: %w", err)
 	}
 	return rows, nil
 }
 
-func parseEmergingJSON(data []byte) ([]TPEXEmergingQuote, error) {
-	var rows []TPEXEmergingQuote
+func parseEmergingJSON(data []byte) ([]tpexEmergingQuote, error) {
+	var rows []tpexEmergingQuote
 	if err := json.Unmarshal(data, &rows); err != nil {
 		return nil, fmt.Errorf("unmarshal emerging JSON: %w", err)
 	}
 	return rows, nil
 }
 
-func parseIndexJSON(data []byte) ([]TPEXIndexData, error) {
-	var rows []TPEXIndexData
+func parseIndexJSON(data []byte) ([]tpexIndexData, error) {
+	var rows []tpexIndexData
 	if err := json.Unmarshal(data, &rows); err != nil {
 		return nil, fmt.Errorf("unmarshal index JSON: %w", err)
 	}
 	return rows, nil
 }
 
-func parseMainboardData(row TPEXMainboardQuote) (*ParsedData, error) {
+func parseMainboardData(row tpexMainboardQuote) (*ParsedData, error) {
 	date, err := parseTPEXDate(row.Date)
 	if err != nil {
 		return nil, fmt.Errorf("parse date %q: %w", row.Date, err)
@@ -105,14 +106,23 @@ func parseMainboardData(row TPEXMainboardQuote) (*ParsedData, error) {
 	return oneRow(row.SecuritiesCompanyCode, row.CompanyName, date, open, high, low, close, volume, transactions, change), nil
 }
 
-func parseEmergingData(row TPEXEmergingQuote) (*ParsedData, error) {
+func parseEmergingData(row tpexEmergingQuote) (*ParsedData, error) {
 	date, err := parseTPEXDate(row.Date)
 	if err != nil {
 		return nil, fmt.Errorf("parse date %q: %w", row.Date, err)
 	}
-	open, high, low, close, _, err := parseOHLCChange(row.Average, row.Highest, row.Lowest, row.LatestPrice, "")
+	open := math.NaN()
+	high, err := parseFloat(row.Highest)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse high %q: %w", row.Highest, err)
+	}
+	low, err := parseFloat(row.Lowest)
+	if err != nil {
+		return nil, fmt.Errorf("parse low %q: %w", row.Lowest, err)
+	}
+	close, err := parseFloat(row.LatestPrice)
+	if err != nil {
+		return nil, fmt.Errorf("parse close %q: %w", row.LatestPrice, err)
 	}
 	volume, err := parseInt(row.TransactionVolume)
 	if err != nil {
@@ -122,7 +132,7 @@ func parseEmergingData(row TPEXEmergingQuote) (*ParsedData, error) {
 	return oneRow("esb:"+row.SecuritiesCompanyCode, row.CompanyName, date, open, high, low, close, volume, 0, 0), nil
 }
 
-func parseIndexData(row TPEXIndexData) (*ParsedData, error) {
+func parseIndexData(row tpexIndexData) (*ParsedData, error) {
 	date, err := parseTPEXDate(row.Date)
 	if err != nil {
 		return nil, fmt.Errorf("parse date %q: %w", row.Date, err)
@@ -133,6 +143,32 @@ func parseIndexData(row TPEXIndexData) (*ParsedData, error) {
 	}
 
 	return oneRow("index", "TPEx Index", date, open, high, low, close, 0, 0, change), nil
+}
+
+func parseIndexRows(rows []tpexIndexData) (*ParsedData, error) {
+	if len(rows) == 0 {
+		return nil, fmt.Errorf("no index data in response")
+	}
+	parsed := &ParsedData{
+		Symbol:       "index",
+		Name:         "TPEx Index",
+		Date:         make([]time.Time, 0, len(rows)),
+		Open:         make([]float64, 0, len(rows)),
+		High:         make([]float64, 0, len(rows)),
+		Low:          make([]float64, 0, len(rows)),
+		Close:        make([]float64, 0, len(rows)),
+		Volume:       make([]int64, 0, len(rows)),
+		Transactions: make([]int64, 0, len(rows)),
+		Change:       make([]float64, 0, len(rows)),
+	}
+	for _, row := range rows {
+		data, err := parseIndexData(row)
+		if err != nil {
+			return nil, err
+		}
+		appendParsedData(parsed, data)
+	}
+	return parsed, nil
 }
 
 func parseOHLCChange(openRaw, highRaw, lowRaw, closeRaw, changeRaw string) (float64, float64, float64, float64, float64, error) {
@@ -209,7 +245,7 @@ func parseTPEXDate(value string) (time.Time, error) {
 func parseFloat(value string) (float64, error) {
 	normalized := normalizeNumber(value)
 	if normalized == "" {
-		return 0, nil
+		return math.NaN(), nil
 	}
 	parsed, err := strconv.ParseFloat(normalized, 64)
 	if err != nil {
@@ -234,29 +270,29 @@ func normalizeNumber(value string) string {
 	value = strings.TrimSpace(value)
 	value = strings.ReplaceAll(value, ",", "")
 	value = strings.TrimPrefix(value, "+")
-	if value == "-" || value == "--" {
+	if value != "" && strings.Trim(value, "-") == "" {
 		return ""
 	}
 	return value
 }
 
-func filterMainboardBySymbol(rows []TPEXMainboardQuote, symbol string) (TPEXMainboardQuote, error) {
+func filterMainboardBySymbol(rows []tpexMainboardQuote, symbol string) (tpexMainboardQuote, error) {
 	for _, row := range rows {
 		if row.SecuritiesCompanyCode == symbol {
 			return row, nil
 		}
 	}
-	return TPEXMainboardQuote{}, fmt.Errorf("symbol %q not found in response", symbol)
+	return tpexMainboardQuote{}, fmt.Errorf("symbol %q not found in response", symbol)
 }
 
-func filterEmergingBySymbol(rows []TPEXEmergingQuote, symbol string) (TPEXEmergingQuote, error) {
+func filterEmergingBySymbol(rows []tpexEmergingQuote, symbol string) (tpexEmergingQuote, error) {
 	code := strings.TrimPrefix(symbol, "esb:")
 	for _, row := range rows {
 		if row.SecuritiesCompanyCode == code {
 			return row, nil
 		}
 	}
-	return TPEXEmergingQuote{}, fmt.Errorf("symbol %q not found in response", symbol)
+	return tpexEmergingQuote{}, fmt.Errorf("symbol %q not found in response", symbol)
 }
 
 func filterByDateRange(data *ParsedData, start, end time.Time) *ParsedData {
