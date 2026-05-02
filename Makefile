@@ -3,6 +3,7 @@
 # Run all tests
 test:
 	go test -v -race ./...
+	cd examples && go test -v ./...
 
 # Generate coverage report
 test-coverage:
@@ -13,6 +14,7 @@ test-coverage:
 # Run linters
 lint:
 	go vet ./...
+	cd examples && go vet ./...
 	@if command -v golangci-lint >/dev/null 2>&1; then \
 		golangci-lint run; \
 	else \
@@ -35,6 +37,7 @@ check: fmt lint test
 # Build project
 build:
 	go build -v ./...
+	cd examples && go build -v ./...
 
 # Clean generated files
 clean:

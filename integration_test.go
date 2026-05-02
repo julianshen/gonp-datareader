@@ -16,6 +16,8 @@ import (
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 )
 
+const realYahooIntegrationEnv = "GONP_DATAREADER_LIVE_YAHOO"
+
 // TestIntegration_EndToEnd demonstrates complete end-to-end functionality
 // with a mock Yahoo Finance server.
 func TestIntegration_EndToEnd(t *testing.T) {
@@ -134,40 +136,36 @@ func TestIntegration_EndToEnd(t *testing.T) {
 }
 
 func realYahooIntegrationEnabled() bool {
-	return os.Getenv("GONP_DATAREADER_LIVE_YAHOO") == "1"
+	return os.Getenv(realYahooIntegrationEnv) == "1"
 }
 
 func TestRealYahooIntegrationEnabled(t *testing.T) {
-	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "")
+	t.Setenv(realYahooIntegrationEnv, "")
 	if realYahooIntegrationEnabled() {
 		t.Fatal("expected real Yahoo integration to be disabled when env var is unset")
 	}
 
-	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "1")
+	t.Setenv(realYahooIntegrationEnv, "1")
 	if !realYahooIntegrationEnabled() {
 		t.Fatal("expected real Yahoo integration to be enabled when env var is 1")
 	}
 
-	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "true")
+	t.Setenv(realYahooIntegrationEnv, "true")
 	if realYahooIntegrationEnabled() {
 		t.Fatal("expected real Yahoo integration to require explicit value 1")
 	}
 }
 
 // TestIntegration_RealYahooFinance tests against the real Yahoo Finance API when explicitly enabled.
-// Run with: GONP_DATAREADER_LIVE_YAHOO=1 go test -tags=integration -run TestIntegration_RealYahooFinance
 func TestIntegration_RealYahooFinance(t *testing.T) {
 	if !realYahooIntegrationEnabled() {
-		t.Log("set GONP_DATAREADER_LIVE_YAHOO=1 to run the real Yahoo Finance API check")
+		t.Logf("set %s=1 to run the real Yahoo Finance API check", realYahooIntegrationEnv)
 		return
 	}
 
 	ctx := context.Background()
 	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
 	end := time.Date(2023, 1, 31, 0, 0, 0, 0, time.UTC)
-
-	// Add delay to avoid rate limiting
-	time.Sleep(2 * time.Second)
 
 	data, err := datareader.Read(ctx, "AAPL", "yahoo", start, end, nil)
 	if err != nil {
