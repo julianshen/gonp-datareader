@@ -1,6 +1,8 @@
 package cache_test
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -258,16 +260,24 @@ func TestFileCache_DeleteNonExistent(t *testing.T) {
 
 func TestFileCache_DeleteError(t *testing.T) {
 	tmpDir := t.TempDir()
-	cachePath := filepath.Join(tmpDir, "cache-file")
-	if err := os.WriteFile(cachePath, []byte("not a directory"), 0o644); err != nil {
-		t.Fatalf("Failed to create cache path collision: %v", err)
+	cachePath := filepath.Join(tmpDir, "cache")
+	key := "testkey"
+	entryPath := cacheFilename(cachePath, key)
+
+	if err := os.MkdirAll(filepath.Join(entryPath, "child"), 0o755); err != nil {
+		t.Fatalf("Failed to create cache entry directory collision: %v", err)
 	}
 
 	c := cache.NewFileCache(cachePath)
 
-	if err := c.Delete("testkey"); err == nil {
-		t.Error("Delete should return error when cache path is a file")
+	if err := c.Delete(key); err == nil {
+		t.Error("Delete should return error when cache entry path is a non-empty directory")
 	}
+}
+
+func cacheFilename(dir, key string) string {
+	hash := sha256.Sum256([]byte(key))
+	return filepath.Join(dir, hex.EncodeToString(hash[:])+".cache")
 }
 
 // Benchmark tests
