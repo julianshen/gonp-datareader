@@ -310,7 +310,7 @@ go test -cover ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out
 
-# Target: >80% coverage
+# Target: >90% coverage
 ```
 
 ---
@@ -447,7 +447,7 @@ From CLAUDE.md Part 5.1:
 - ✅ Sub-second response for typical queries
 - ✅ 99%+ success rate for valid requests
 - ✅ Clear API, comprehensive documentation
-- ✅ High test coverage (>80%)
+- ✅ High test coverage (>90%)
 - ✅ Clean code, minimal bugs
 
 ---

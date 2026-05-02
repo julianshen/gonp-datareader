@@ -107,20 +107,27 @@ Guide to using the documentation effectively.
 gonp-datareader/
 ├── datareader.go          # Main interface & factory
 ├── config.go              # Configuration
-├── error.go               # Custom error types
 ├── sources/               # Data source implementations
-│   ├── source.go         # Base interface
-│   ├── yahoo/            # Yahoo Finance
-│   ├── fred/             # Federal Reserve Economic Data
-│   ├── worldbank/        # World Bank
-│   └── alphavantage/     # Alpha Vantage
-├── internal/             
-│   ├── http/            # HTTP client with retry
-│   ├── cache/           # Response caching
-│   └── utils/           # Common utilities
-├── examples/            # Usage examples
-├── docs/                # Documentation
-└── testdata/            # Test fixtures
+│   ├── source.go          # Base interface
+│   ├── yahoo/             # Yahoo Finance
+│   ├── fred/              # Federal Reserve Economic Data
+│   ├── worldbank/         # World Bank
+│   ├── alphavantage/      # Alpha Vantage
+│   ├── stooq/             # Stooq
+│   ├── iex/               # IEX Cloud
+│   ├── tiingo/            # Tiingo
+│   ├── oecd/              # OECD
+│   ├── eurostat/          # Eurostat
+│   ├── twse/              # Taiwan Stock Exchange
+│   └── finmind/           # FinMind
+├── internal/
+│   ├── http/              # HTTP client with retry
+│   ├── cache/             # Response caching
+│   ├── ratelimit/         # Token bucket rate limiter
+│   └── utils/             # Common utilities
+├── examples/              # Usage examples
+├── docs/                  # Documentation
+└── testdata/              # Test fixtures
 ```
 
 ---
@@ -268,8 +275,7 @@ COMMIT: With proper message
 ```
 
 ### Coverage Goals
-- Minimum: 80% overall
-- Target: 90%+ for v1.0
+- Minimum: 90% for all packages
 - Critical paths: 100% (parsers, error handling)
 
 ### Test Types
@@ -402,7 +408,7 @@ From **spec.md**:
 **Performance:** Sub-second typical queries  
 **Reliability:** 99%+ success rate  
 **Usability:** Clear API, comprehensive docs  
-**Quality:** >80% test coverage, clean code
+**Quality:** >90% test coverage, clean code
 
 ---
 

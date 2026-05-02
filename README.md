@@ -225,7 +225,7 @@ All core phases complete:
 - ✅ **FinMind**: Taiwan & international financial data (50+ datasets, optional API key)
 - ✅ **Rate Limiting**: Token bucket algorithm for API limits
 - ✅ **Response Caching**: File-based caching with TTL
-- ✅ **Comprehensive Tests**: >75% test coverage
+- ✅ **Comprehensive Tests**: >90% test coverage
 - ✅ **Full Documentation**: Package docs and examples
 
 ## Testing
@@ -249,7 +249,7 @@ make fmt
 Contributions are welcome! Please see [CLAUDE.md](./CLAUDE.md) for development guidelines.
 
 This project follows Test-Driven Development (TDD) methodology. All contributions should:
-- Include tests with >80% coverage
+- Include tests with >90% coverage
 - Follow Go conventions and idioms
 - Pass all linters (`go vet`, `golangci-lint`)
 - Include documentation for exported functions
@@ -260,10 +260,10 @@ This project follows Test-Driven Development (TDD) methodology. All contribution
 **Version 0.1.0 Status:** ✅ **All core features complete!**
 
 Implemented features:
-- ✅ 9 data sources (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat)
+- ✅ 11 data sources (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, FinMind)
 - ✅ Performance optimizations (10% parser speedup, 140x faster buffer pooling, 4.5x parallel fetching)
 - ✅ Comprehensive documentation and examples
-- ✅ Test coverage >70%
+- ✅ Test coverage >90%
 
 Future enhancements (community-driven):
 - Additional data sources based on user requests
