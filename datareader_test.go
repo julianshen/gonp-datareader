@@ -32,6 +32,13 @@ func TestDataReader(t *testing.T) {
 			wantSource: "fred",
 		},
 		{
+			name:       "tpex source",
+			source:     "tpex",
+			wantErr:    false,
+			wantName:   "Taipei Exchange",
+			wantSource: "tpex",
+		},
+		{
 			name:    "unknown source",
 			source:  "unknown",
 			wantErr: true,
@@ -145,6 +152,7 @@ func TestListSources(t *testing.T) {
 	expectedSources := map[string]bool{
 		"yahoo": false,
 		"fred":  false,
+		"tpex":  false,
 	}
 
 	for _, source := range sources {

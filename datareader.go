@@ -72,6 +72,7 @@
 //   - oecd: OECD - Economic indicators and statistics (no API key required)
 //   - eurostat: Eurostat - European statistics (no API key required)
 //   - twse: Taiwan Stock Exchange - Taiwan stock market data (no API key required)
+//   - tpex: Taipei Exchange - Taiwan OTC, emerging stock, and index data (no API key required)
 //   - finmind: FinMind - Taiwan and international financial data (optional API key for higher rate limits)
 //
 // Use ListSources() to get a list of all available sources at runtime.
@@ -128,6 +129,7 @@ import (
 	"github.com/julianshen/gonp-datareader/sources/oecd"
 	"github.com/julianshen/gonp-datareader/sources/stooq"
 	"github.com/julianshen/gonp-datareader/sources/tiingo"
+	"github.com/julianshen/gonp-datareader/sources/tpex"
 	"github.com/julianshen/gonp-datareader/sources/twse"
 	"github.com/julianshen/gonp-datareader/sources/worldbank"
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
@@ -152,6 +154,7 @@ var (
 //   - "oecd": OECD - economic indicators and statistics (no API key required)
 //   - "eurostat": Eurostat - European statistics (no API key required)
 //   - "twse": Taiwan Stock Exchange - Taiwan stock market data (no API key required)
+//   - "tpex": Taipei Exchange - Taiwan OTC, emerging stock, and index data (no API key required)
 //
 // The opts parameter provides configuration for the reader. If nil, default options are used.
 // See the Options struct for available configuration settings.
@@ -225,6 +228,8 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 		return eurostat.NewEurostatReader(clientOpts), nil
 	case "twse":
 		return twse.NewTWSEReader(clientOpts), nil
+	case "tpex":
+		return tpex.NewTPEXReader(clientOpts), nil
 	case "finmind":
 		if apiKey != "" {
 			return finmind.NewFinMindReaderWithToken(clientOpts, apiKey), nil
@@ -252,6 +257,7 @@ func DataReader(source string, opts *Options) (sources.Reader, error) {
 //   - Yahoo, Stooq, Alpha Vantage, IEX: Returns *ParsedData with OHLCV data
 //   - FRED: Returns *ParsedData with dates and values
 //   - World Bank: Returns *ParsedData with indicator values
+//   - TWSE, TPEX: Returns source-specific *ParsedData with Taiwan market data
 //
 // # Example Usage
 //
@@ -324,6 +330,7 @@ func ListSources() []string {
 		"oecd",
 		"eurostat",
 		"twse",
+		"tpex",
 		"finmind",
 	}
 }

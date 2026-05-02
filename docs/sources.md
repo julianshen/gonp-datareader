@@ -15,7 +15,8 @@ This document provides detailed information about each data source supported by 
 7. [Tiingo](#tiingo)
 8. [OECD](#oecd)
 9. [Eurostat](#eurostat)
-10. [Comparison Matrix](#comparison-matrix)
+10. [TPEX](#tpex-taipei-exchange)
+11. [Comparison Matrix](#comparison-matrix)
 
 ---
 
@@ -565,20 +566,74 @@ data, err := datareader.Read(ctx, "prc_hicp_midx", "eurostat", start, end, nil)
 
 ---
 
+## TPEX (Taipei Exchange)
+
+### Overview
+TPEX provides official Taipei Exchange OpenAPI datasets for OTC stocks, emerging stocks, and OTC index history.
+
+### API Key Required
+**No** - Free access without registration
+
+### Symbol Format
+- **Mainboard OTC stocks**: `CODE` (e.g., `8069`)
+- **Emerging stocks**: `esb:CODE` (e.g., `esb:6871`)
+- **OTC index history**: `index`
+
+### Data Available
+- Mainboard OTC stock OHLC, trading shares, transaction count, and price change
+- Emerging stock latest, high, low, average price, and transaction volume
+- OTC index historical OHLC and price change
+
+### Rate Limits
+- No API key required
+- No strict public limit documented
+- Use caching and moderate request rates for production applications
+
+### Multi-Symbol Support
+✅ **Yes** - Multiple symbols are supported through repeated endpoint reads
+
+### Capabilities
+- ✅ Official Taipei Exchange data
+- ✅ Free, no API key required
+- ✅ OTC stocks, emerging stocks, and index data
+- ✅ JSON OpenAPI endpoints
+
+### Limitations
+- ❌ Most stock endpoints publish latest trading-day data rather than arbitrary historical ranges
+- ❌ `esb:` prefix is datareader-specific routing syntax
+- ❌ Broader TPEX bond, warrant, disclosure, and governance endpoints are not included
+
+### Example Usage
+```go
+// Mainboard OTC stock
+data, err := datareader.Read(ctx, "8069", "tpex", start, end, nil)
+
+// Emerging stock
+data, err := datareader.Read(ctx, "esb:6871", "tpex", start, end, nil)
+
+// OTC index history
+data, err := datareader.Read(ctx, "index", "tpex", start, end, nil)
+```
+
+### Links
+- OpenAPI Portal: https://www.tpex.org.tw/openapi/
+
+---
+
 ## Comparison Matrix
 
-| Feature | Yahoo | FRED | World Bank | Alpha Vantage | Stooq | IEX Cloud | Tiingo | OECD | Eurostat |
-|---------|-------|------|------------|---------------|-------|-----------|--------|------|----------|
-| **API Key Required** | No | Optional | No | Yes | No | Yes | Yes | No | No |
-| **Free Tier** | ✅ | ✅ | ✅ | Limited | ✅ | Limited | Limited | ✅ | ✅ |
-| **Data Type** | Stocks | Economic | Economic | Stocks | Stocks/Forex | Stocks | Stocks | Economic | Economic |
-| **Real-time** | Delayed | No | No | Yes | No | Yes | Yes | No | No |
-| **Historical** | 20+ yrs | Varies | 1960+ | 20+ yrs | 10-20 yrs | 5 yrs | 30+ yrs | Varies | Varies |
-| **Multi-Symbol** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **Rate Limits** | Soft | 120/min | Soft | 5/min | Soft | Message | Moderate | Soft | Soft |
-| **Global Markets** | ✅ | ❌ | ✅ | Limited | ✅ | ❌ | ❌ | ✅ | EU Only |
-| **Data Quality** | Good | High | High | High | Good | High | High | High | High |
-| **Best For** | Stocks | US Econ | Intl Dev | Trading | Free Data | Pro Apps | Quality | OECD Data | EU Stats |
+| Feature | Yahoo | FRED | World Bank | Alpha Vantage | Stooq | IEX Cloud | Tiingo | OECD | Eurostat | TPEX |
+|---------|-------|------|------------|---------------|-------|-----------|--------|------|----------|------|
+| **API Key Required** | No | Optional | No | Yes | No | Yes | Yes | No | No | No |
+| **Free Tier** | ✅ | ✅ | ✅ | Limited | ✅ | Limited | Limited | ✅ | ✅ | ✅ |
+| **Data Type** | Stocks | Economic | Economic | Stocks | Stocks/Forex | Stocks | Stocks | Economic | Economic | Taiwan OTC |
+| **Real-time** | Delayed | No | No | Yes | No | Yes | Yes | No | No | Latest |
+| **Historical** | 20+ yrs | Varies | 1960+ | 20+ yrs | 10-20 yrs | 5 yrs | 30+ yrs | Varies | Varies | Index |
+| **Multi-Symbol** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ✅ |
+| **Rate Limits** | Soft | 120/min | Soft | 5/min | Soft | Message | Moderate | Soft | Soft | Soft |
+| **Global Markets** | ✅ | ❌ | ✅ | Limited | ✅ | ❌ | ❌ | ✅ | EU Only | Taiwan |
+| **Data Quality** | Good | High | High | High | Good | High | High | High | High | High |
+| **Best For** | Stocks | US Econ | Intl Dev | Trading | Free Data | Pro Apps | Quality | OECD Data | EU Stats | Taiwan OTC |
 
 ### Legend
 - ✅ = Fully supported
