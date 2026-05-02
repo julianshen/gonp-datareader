@@ -7,6 +7,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -132,12 +133,33 @@ func TestIntegration_EndToEnd(t *testing.T) {
 	t.Log("✓ Integration test completed successfully!")
 }
 
-// TestIntegration_RealYahooFinance tests against the real Yahoo Finance API.
-// This test may fail due to rate limiting or network issues.
-// Run with: go test -tags=integration -run TestIntegration_RealYahooFinance
+func realYahooIntegrationEnabled() bool {
+	return os.Getenv("GONP_DATAREADER_LIVE_YAHOO") == "1"
+}
+
+func TestRealYahooIntegrationEnabled(t *testing.T) {
+	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "")
+	if realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to be disabled when env var is unset")
+	}
+
+	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "1")
+	if !realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to be enabled when env var is 1")
+	}
+
+	t.Setenv("GONP_DATAREADER_LIVE_YAHOO", "true")
+	if realYahooIntegrationEnabled() {
+		t.Fatal("expected real Yahoo integration to require explicit value 1")
+	}
+}
+
+// TestIntegration_RealYahooFinance tests against the real Yahoo Finance API when explicitly enabled.
+// Run with: GONP_DATAREADER_LIVE_YAHOO=1 go test -tags=integration -run TestIntegration_RealYahooFinance
 func TestIntegration_RealYahooFinance(t *testing.T) {
-	if testing.Short() {
-		t.Skip("Skipping real API test in short mode")
+	if !realYahooIntegrationEnabled() {
+		t.Log("set GONP_DATAREADER_LIVE_YAHOO=1 to run the real Yahoo Finance API check")
+		return
 	}
 
 	ctx := context.Background()
@@ -149,9 +171,7 @@ func TestIntegration_RealYahooFinance(t *testing.T) {
 
 	data, err := datareader.Read(ctx, "AAPL", "yahoo", start, end, nil)
 	if err != nil {
-		t.Logf("Real API test failed (expected due to rate limiting): %v", err)
-		t.Skip("Skipping due to API error - this is normal")
-		return
+		t.Fatalf("Real Yahoo Finance API check failed: %v", err)
 	}
 
 	parsedData := data.(*yahoo.ParsedData)
