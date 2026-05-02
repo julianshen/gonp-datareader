@@ -1008,24 +1008,42 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ---
 
+## Phase 16: FinMind Reader ✓ COMPLETED
+
+**Status:** ✅ COMPLETE - FinMind reader fully implemented, tested, documented, and production-ready as the 11th data source!
+
+**Completed scope:**
+- ☑ Implement FinMind reader with optional Bearer token authentication
+- ☑ Add FinMind API URL building and dataset parameter handling
+- ☑ Parse FinMind JSON responses into `ParsedData`
+- ☑ Support single-symbol and multi-symbol reads with rate limiting
+- ☑ Register `finmind` in the datareader factory and source list
+- ☑ Add FinMind README documentation and `examples/finmind/main.go`
+- ☑ Verify FinMind package coverage at 93.8%
+
+**Commit range:** `e063013` through `ed986f5`
+
+---
+
 ## Progress Tracking
 
-**Current Phase:** ✅ Phase 15 - TWSE (Taiwan Stock Exchange) Reader - **COMPLETE!**
-**Last Completed:** Phase 15.10 - TWSE Testing ✅
-**Next Up:** Future development (Phase 15 fully complete!)
+**Current Phase:** ✅ Phase 16 - FinMind Reader - **COMPLETE!**
+**Last Completed:** Phase 16.11 - FinMind Testing and Verification ✅
+**Next Up:** Future development (Phase 16 fully complete!)
 
 **Statistics:**
-- Total Commits: 100 (v0.1.0: 78, v0.2.0: 5, v0.3.0-dev: 17) 🎉
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**
-- Test Coverage: Main 71.1%, Infrastructure 89.2%-100%, **TWSE 92.0%** (exceeds 80% target!)
-- Data Sources: **10** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, **TWSE**)
+- Total Commits: 127 (latest tag: v1.0.0; current HEAD: v1.0.0-41-gba626bf)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**
+- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **FinMind 93.8%**; aggregate `./...` total is 50.1% because example `main` packages are included at 0.0%
+- Data Sources: **11** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **FinMind**)
   - **✅ TWSE (Taiwan Stock Exchange):** Fully implemented, tested, documented, and production-ready!
-  - **149 test cases** covering all functionality
-  - **92.0% test coverage** (exceeds 80% requirement)
-  - **175-line example** with 5 usage scenarios
+  - **✅ FinMind:** Fully implemented, tested, documented, and production-ready with optional token authentication!
+  - **282 test functions** covering all functionality
+  - **All source packages at 90.5%-100.0% coverage**
+  - **FinMind example** with token, Taiwan stocks, dataset, and error-handling scenarios
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
-- Documentation: 2500+ lines (sources.md 700+, migration.md 800+, api.md 900+) + TWSE examples
+- Documentation: 3000+ lines (sources.md 652, migration.md 750, api.md 1180) + TWSE and FinMind examples
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
-- Production Ready: v0.2.0 complete, **v0.3.0 ready with TWSE support**
-- Next Release: v0.3.0 with TWSE support
-- **Phase 15: 100% COMPLETE (10/10 sections)** ✅
+- Production Ready: v1.0.0 tagged, post-v1.0.0 development includes TWSE and FinMind
+- Next Release: TBD post-FinMind release
+- **Phase 16: 100% COMPLETE (11/11 sections)** ✅
