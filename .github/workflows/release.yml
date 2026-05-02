@@ -27,6 +27,9 @@ jobs:
     - name: Run tests
       run: go test -v ./...
 
+    - name: Run example tests
+      run: cd examples && go test -v ./...
+
     - name: Get version from tag
       id: get_version
       run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
