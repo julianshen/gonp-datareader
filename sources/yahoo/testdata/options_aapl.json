@@ -1,0 +1,85 @@
+{
+  "optionChain": {
+    "result": [
+      {
+        "underlyingSymbol": "AAPL",
+        "expirationDates": [
+          1750118400,
+          1750723200
+        ],
+        "strikes": [
+          150.0,
+          155.0,
+          160.0
+        ],
+        "options": [
+          {
+            "expirationDate": 1750118400,
+            "hasMiniOptions": false,
+            "calls": [
+              {
+                "contractSymbol": "AAPL250606C00150000",
+                "strike": 150.0,
+                "expiration": 1750118400,
+                "lastPrice": 12.45,
+                "bid": 12.30,
+                "ask": 12.60,
+                "change": 0.85,
+                "percentChange": 7.33,
+                "volume": 2450,
+                "openInterest": 15230,
+                "impliedVolatility": 0.285,
+                "inTheMoney": true
+              },
+              {
+                "contractSymbol": "AAPL250606C00155000",
+                "strike": 155.0,
+                "expiration": 1750118400,
+                "lastPrice": 8.90,
+                "bid": 8.75,
+                "ask": 9.05,
+                "change": 0.60,
+                "percentChange": 7.23,
+                "volume": 1890,
+                "openInterest": 9870,
+                "impliedVolatility": 0.272,
+                "inTheMoney": true
+              }
+            ],
+            "puts": [
+              {
+                "contractSymbol": "AAPL250606P00150000",
+                "strike": 150.0,
+                "expiration": 1750118400,
+                "lastPrice": 2.15,
+                "bid": 2.10,
+                "ask": 2.20,
+                "change": -0.30,
+                "percentChange": -12.24,
+                "volume": 1320,
+                "openInterest": 8450,
+                "impliedVolatility": 0.292,
+                "inTheMoney": false
+              },
+              {
+                "contractSymbol": "AAPL250606P00155000",
+                "strike": 155.0,
+                "expiration": 1750118400,
+                "lastPrice": 3.80,
+                "bid": 3.70,
+                "ask": 3.90,
+                "change": -0.45,
+                "percentChange": -10.59,
+                "volume": 980,
+                "openInterest": 6230,
+                "impliedVolatility": 0.268,
+                "inTheMoney": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "error": null
+  }
+}

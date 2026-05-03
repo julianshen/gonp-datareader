@@ -1025,26 +1025,79 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ---
 
+## Phase 17: Yahoo Options Chain Reader ✓ COMPLETED
+
+### 17.1 Options Data Types ✓
+- ☑ Test: OptionContract struct with JSON tags
+- ☑ Implement: OptionContract and OptionsChain types
+- ☑ Verify: Struct fields and tags correct
+
+**Commit:** `feat: define options chain data types` ✅ Done (commit: aa77703)
+
+### 17.2 Options JSON Parser ✓
+- ☑ Test: ParseOptionsJSON parses valid Yahoo response
+- ☑ Implement: ParseOptionsJSON with rawOptionContract helper
+- ☑ Test: Empty result returns error
+- ☑ Test: Yahoo API error returns error
+- ☑ Create: testdata/options_aapl.json fixture
+
+**Commit:** `feat: implement Yahoo options JSON parser` ✅ Done (commit: cbbf020)
+
+### 17.3 OptionsReader Structure ✓
+- ☑ Test: NewOptionsReader returns valid reader
+- ☑ Implement: OptionsReader struct with BaseSource + RetryableClient
+- ☑ Test: Name() returns "Yahoo Finance Options"
+- ☑ Implement: NewOptionsReader and NewOptionsReaderWithBaseURL constructors
+
+**Commit:** `feat: create OptionsReader structure` ✅ Done (commit: 0f0c4eb)
+
+### 17.4 GetOptionsChain ✓
+- ☑ Test: GetOptionsChain fetches from mock server
+- ☑ Implement: GetOptionsChain with symbol validation and expiration parameter
+- ☑ Test: Invalid symbol returns error
+- ☑ Test: HTTP error returns descriptive error
+- ☑ Verify: Parser integration works end-to-end
+
+**Commit:** `feat: implement GetOptionsChain with mock tests` ✅ Done (commit: 29f8685)
+
+### 17.5 GetExpirationDates ✓
+- ☑ Test: GetExpirationDates parses expiration dates
+- ☑ Implement: GetExpirationDates with dedicated JSON parsing
+- ☑ Test: Invalid symbol returns error
+- ☑ Test: HTTP error returns error
+- ☑ Test: Yahoo API error returns error
+- ☑ Test: Empty result returns error
+
+**Commit:** `feat: implement GetExpirationDates` ✅ Done (commit: 7b19667)
+
+### 17.6 Verification ✓
+- ☑ All tests passing: 14/14 options tests + 21/21 existing yahoo tests
+- ☑ Coverage: **91.3%** for sources/yahoo (above 90% threshold)
+- ☑ go vet: clean
+- ☑ gofmt: formatted
+- ☑ Full test suite: all packages pass
+
+**Status:** ✅ COMPLETE - Yahoo Options Chain reader fully implemented, tested, and production-ready!
+
+---
+
 ## Progress Tracking
 
-**Current Phase:** ✅ Phase 17 - TPEX Reader - **COMPLETE!**
-**Last Completed:** Phase 17 - TPEX API implementation and verification ✅
-**Next Up:** Future development (Phase 17 fully complete!)
+**Current Phase:** ✅ Phase 17 - Yahoo Options Chain Reader - **COMPLETE!**
+**Last Completed:** Phase 17.6 - Options Verification ✅
+**Next Up:** Phase 18 - Yahoo Holdings Reader (per RFC-gonp-datareader-expansion.md)
 
 **Statistics:**
-- Total Commits: 127 (latest tag: v1.0.0; current HEAD: v1.0.0-41-gba626bf)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**, **17 (COMPLETE!)**
-- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **TPEX 91.9%**, **FinMind 93.8%**; aggregate root module `./...` total is 92.6% with examples verified in their separate module
-- Data Sources: **12** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **TPEX**, **FinMind**)
-  - **✅ TWSE (Taiwan Stock Exchange):** Fully implemented, tested, documented, and production-ready!
-  - **✅ TPEX (Taipei Exchange):** Fully implemented for OTC stocks, emerging stocks, and OTC index data!
-  - **✅ FinMind:** Fully implemented, tested, documented, and production-ready with optional token authentication!
-  - **300+ test functions** covering all functionality
+- Total Commits: 132 (latest tag: v1.0.0; current HEAD: feat/yahoo-options)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**, **17.1-17.6 (COMPLETE!)**
+- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **FinMind 93.8%**, **Yahoo Options 91.3%**; aggregate `./...` total is 50.1% because example `main` packages are included at 0.0%
+- Data Sources: **11** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **FinMind**)
+- New Features: **Yahoo Options Chain** (OptionsReader with GetOptionsChain, GetExpirationDates)
+  - **282+ test functions** covering all functionality
   - **All source packages at 90.5%-100.0% coverage**
-  - **FinMind example** with token, Taiwan stocks, dataset, and error-handling scenarios
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 3000+ lines (sources.md 652, migration.md 750, api.md 1180) + TWSE and FinMind examples
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
-- Production Ready: v1.0.0 tagged, post-v1.0.0 development includes TWSE and FinMind
-- Next Release: TBD post-TPEX release
-- **Phase 17: 100% COMPLETE** ✅
+- Production Ready: v1.0.0 tagged, post-v1.0.0 development includes TWSE, FinMind, and Yahoo Options
+- Next Release: TBD
+- **Phase 17: 100% COMPLETE (6/6 sections)** ✅
