@@ -43,66 +43,8 @@ func (o *OptionsReader) Name() string {
 	return "Yahoo Finance Options"
 }
 
-// Client returns the underlying HTTP client.
-func (o *OptionsReader) Client() *internalhttp.RetryableClient {
-	return o.client
-}
-
-// GetExpirationDates returns available expiration dates for a symbol.
-func (o *OptionsReader) GetExpirationDates(ctx context.Context, symbol string) ([]time.Time, error) {
-	if err := o.ValidateSymbol(symbol); err != nil {
-		return nil, fmt.Errorf("invalid symbol: %w", err)
-	}
-
-	url := fmt.Sprintf(o.baseURL, symbol)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
-	}
-
-	resp, err := o.client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("fetch expirations: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("yahoo returned %d: %s", resp.StatusCode, string(body))
-	}
-
-	var data struct {
-		OptionChain struct {
-			Result []struct {
-				ExpirationDates []int64 `json:"expirationDates"`
-			} `json:"result"`
-			Error interface{} `json:"error"`
-		} `json:"optionChain"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("decode expirations: %w", err)
-	}
-
-	if data.OptionChain.Error != nil {
-		return nil, fmt.Errorf("yahoo finance error: %v", data.OptionChain.Error)
-	}
-
-	if len(data.OptionChain.Result) == 0 {
-		return nil, fmt.Errorf("no expiration dates found")
-	}
-
-	dates := make([]time.Time, len(data.OptionChain.Result[0].ExpirationDates))
-	for i, ts := range data.OptionChain.Result[0].ExpirationDates {
-		dates[i] = time.Unix(ts, 0)
-	}
-
-	return dates, nil
-}
-
-// GetOptionsChain fetches the options chain for a symbol.
-// If expiration is nil, returns the nearest expiration.
-func (o *OptionsReader) GetOptionsChain(ctx context.Context, symbol string, expiration *time.Time) (*OptionsChain, error) {
+// fetchOptions fetches the raw options JSON from Yahoo Finance for a symbol.
+func (o *OptionsReader) fetchOptions(ctx context.Context, symbol string, expiration *time.Time) (io.ReadCloser, error) {
 	if err := o.ValidateSymbol(symbol); err != nil {
 		return nil, fmt.Errorf("invalid symbol: %w", err)
 	}
@@ -121,14 +63,76 @@ func (o *OptionsReader) GetOptionsChain(ctx context.Context, symbol string, expi
 	if err != nil {
 		return nil, fmt.Errorf("fetch options: %w", err)
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
+		defer resp.Body.Close()
+		body, readErr := io.ReadAll(resp.Body)
+		if readErr != nil {
+			return nil, fmt.Errorf("yahoo returned %d (failed to read body: %w)", resp.StatusCode, readErr)
+		}
 		return nil, fmt.Errorf("yahoo returned %d: %s", resp.StatusCode, string(body))
 	}
 
-	return ParseOptionsJSON(resp.Body)
+	return resp.Body, nil
+}
+
+// GetExpirationDates returns available expiration dates for a symbol.
+func (o *OptionsReader) GetExpirationDates(ctx context.Context, symbol string) ([]time.Time, error) {
+	body, err := o.fetchOptions(ctx, symbol, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	var data struct {
+		OptionChain struct {
+			Result []struct {
+				ExpirationDates []int64 `json:"expirationDates"`
+			} `json:"result"`
+			Error *yahooError `json:"error"`
+		} `json:"optionChain"`
+	}
+
+	if err := json.NewDecoder(body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("decode expirations: %w", err)
+	}
+
+	if data.OptionChain.Error != nil {
+		return nil, fmt.Errorf("yahoo finance error: %w", data.OptionChain.Error)
+	}
+
+	if len(data.OptionChain.Result) == 0 {
+		return nil, fmt.Errorf("no expiration dates found")
+	}
+
+	dates := make([]time.Time, len(data.OptionChain.Result[0].ExpirationDates))
+	for i, ts := range data.OptionChain.Result[0].ExpirationDates {
+		dates[i] = time.Unix(ts, 0)
+	}
+
+	return dates, nil
+}
+
+// GetOptionsChain fetches the options chain for a symbol.
+// If expiration is nil, returns the nearest expiration.
+func (o *OptionsReader) GetOptionsChain(ctx context.Context, symbol string, expiration *time.Time) (*OptionsChain, error) {
+	body, err := o.fetchOptions(ctx, symbol, expiration)
+	if err != nil {
+		return nil, err
+	}
+	defer body.Close()
+
+	return ParseOptionsJSON(body)
+}
+
+// yahooError represents an error response from Yahoo Finance.
+type yahooError struct {
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
+func (e *yahooError) Error() string {
+	return fmt.Sprintf("%s: %s", e.Code, e.Description)
 }
 
 // OptionContract represents a single options contract.
@@ -157,19 +161,31 @@ type OptionsChain struct {
 
 // rawOptionContract is used to decode JSON without the time.Time field.
 type rawOptionContract struct {
-	ContractSymbol string  `json:"contractSymbol"`
-	Strike         float64 `json:"strike"`
-	Expiration     int64   `json:"expiration"`
-	Type           string  `json:"type"`
-	LastPrice      float64 `json:"lastPrice"`
-	Bid            float64 `json:"bid"`
-	Ask            float64 `json:"ask"`
-	Change         float64 `json:"change"`
-	PercentChange  float64 `json:"percentChange"`
-	Volume         int64   `json:"volume"`
-	OpenInterest   int64   `json:"openInterest"`
-	ImpliedVol     float64 `json:"impliedVolatility"`
-	InTheMoney     bool    `json:"inTheMoney"`
+	OptionContract
+	Expiration int64 `json:"expiration"`
+}
+
+// convertRawContracts converts raw option contracts to OptionContract slice.
+func convertRawContracts(raw []rawOptionContract, typ string) []OptionContract {
+	contracts := make([]OptionContract, len(raw))
+	for i, rc := range raw {
+		contracts[i] = OptionContract{
+			ContractSymbol: rc.ContractSymbol,
+			Strike:         rc.Strike,
+			Expiration:     time.Unix(rc.Expiration, 0),
+			Type:           typ,
+			LastPrice:      rc.LastPrice,
+			Bid:            rc.Bid,
+			Ask:            rc.Ask,
+			Change:         rc.Change,
+			PercentChange:  rc.PercentChange,
+			Volume:         rc.Volume,
+			OpenInterest:   rc.OpenInterest,
+			ImpliedVol:     rc.ImpliedVol,
+			InTheMoney:     rc.InTheMoney,
+		}
+	}
+	return contracts
 }
 
 // ParseOptionsJSON parses Yahoo Finance options JSON response.
@@ -185,7 +201,7 @@ func ParseOptionsJSON(r io.Reader) (*OptionsChain, error) {
 					Puts           []rawOptionContract `json:"puts"`
 				} `json:"options"`
 			} `json:"result"`
-			Error interface{} `json:"error"`
+			Error *yahooError `json:"error"`
 		} `json:"optionChain"`
 	}
 
@@ -194,7 +210,7 @@ func ParseOptionsJSON(r io.Reader) (*OptionsChain, error) {
 	}
 
 	if resp.OptionChain.Error != nil {
-		return nil, fmt.Errorf("yahoo finance error: %v", resp.OptionChain.Error)
+		return nil, fmt.Errorf("yahoo finance error: %w", resp.OptionChain.Error)
 	}
 
 	if len(resp.OptionChain.Result) == 0 || len(resp.OptionChain.Result[0].Options) == 0 {
@@ -204,43 +220,8 @@ func ParseOptionsJSON(r io.Reader) (*OptionsChain, error) {
 	result := resp.OptionChain.Result[0]
 	opt := result.Options[0]
 
-	calls := make([]OptionContract, len(opt.Calls))
-	for i, rc := range opt.Calls {
-		calls[i] = OptionContract{
-			ContractSymbol: rc.ContractSymbol,
-			Strike:         rc.Strike,
-			Expiration:     time.Unix(rc.Expiration, 0),
-			Type:           "CALL",
-			LastPrice:      rc.LastPrice,
-			Bid:            rc.Bid,
-			Ask:            rc.Ask,
-			Change:         rc.Change,
-			PercentChange:  rc.PercentChange,
-			Volume:         rc.Volume,
-			OpenInterest:   rc.OpenInterest,
-			ImpliedVol:     rc.ImpliedVol,
-			InTheMoney:     rc.InTheMoney,
-		}
-	}
-
-	puts := make([]OptionContract, len(opt.Puts))
-	for i, rp := range opt.Puts {
-		puts[i] = OptionContract{
-			ContractSymbol: rp.ContractSymbol,
-			Strike:         rp.Strike,
-			Expiration:     time.Unix(rp.Expiration, 0),
-			Type:           "PUT",
-			LastPrice:      rp.LastPrice,
-			Bid:            rp.Bid,
-			Ask:            rp.Ask,
-			Change:         rp.Change,
-			PercentChange:  rp.PercentChange,
-			Volume:         rp.Volume,
-			OpenInterest:   rp.OpenInterest,
-			ImpliedVol:     rp.ImpliedVol,
-			InTheMoney:     rp.InTheMoney,
-		}
-	}
+	calls := convertRawContracts(opt.Calls, "CALL")
+	puts := convertRawContracts(opt.Puts, "PUT")
 
 	return &OptionsChain{
 		ExpirationDate: time.Unix(opt.ExpirationDate, 0),

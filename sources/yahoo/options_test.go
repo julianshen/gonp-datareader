@@ -67,7 +67,6 @@ func TestParseOptionsJSON_YahooError(t *testing.T) {
 func TestOptionsReader_Struct(t *testing.T) {
 	reader := yahoo.NewOptionsReader(nil)
 	assert.NotNil(t, reader)
-	assert.NotNil(t, reader.Client())
 }
 
 func TestOptionsReader_Name(t *testing.T) {
@@ -81,9 +80,11 @@ func TestOptionsReader_GetOptionsChain_MockServer(t *testing.T) {
 		symbol := strings.TrimPrefix(r.URL.Path, "/v7/finance/options/")
 		assert.Equal(t, "AAPL", symbol)
 
-		data, _ := os.ReadFile("testdata/options_aapl.json")
+		data, err := os.ReadFile("testdata/options_aapl.json")
+		require.NoError(t, err)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write(data)
+		_, err = w.Write(data)
+		require.NoError(t, err)
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -123,7 +124,8 @@ func TestOptionsReader_GetExpirationDates(t *testing.T) {
 	mux.HandleFunc("/v7/finance/options/", func(w http.ResponseWriter, r *http.Request) {
 		resp := `{"optionChain":{"result":[{"expirationDates":[1750118400,1750723200],"strikes":[150,155],"options":[]}],"error":null}}`
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(resp))
+		_, err := w.Write([]byte(resp))
+		require.NoError(t, err)
 	})
 	server := httptest.NewServer(mux)
 	defer server.Close()
