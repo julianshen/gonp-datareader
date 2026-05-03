@@ -1027,23 +1027,24 @@ This implementation plan follows Test-Driven Development (TDD) methodology. Each
 
 ## Progress Tracking
 
-**Current Phase:** ✅ Phase 16 - FinMind Reader - **COMPLETE!**
-**Last Completed:** Phase 16.11 - FinMind Testing and Verification ✅
-**Next Up:** Future development (Phase 16 fully complete!)
+**Current Phase:** ✅ Phase 17 - TPEX Reader - **COMPLETE!**
+**Last Completed:** Phase 17 - TPEX API implementation and verification ✅
+**Next Up:** Future development (Phase 17 fully complete!)
 
 **Statistics:**
 - Total Commits: 127 (latest tag: v1.0.0; current HEAD: v1.0.0-41-gba626bf)
-- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**
-- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **FinMind 93.8%**; aggregate root module `./...` total is 92.8% with examples verified in their separate module
-- Data Sources: **11** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **FinMind**)
+- Phases Completed: 0-4, 10.1-10.8, 11.2-11.4, 12.1-12.2, 13.1-13.5, 14.1-14.2, **15.1-15.10 (COMPLETE!)**, **16.1-16.11 (COMPLETE!)**, **17 (COMPLETE!)**
+- Test Coverage: Main 100.0%, Infrastructure 91.7%-100%, **TWSE 91.8%**, **TPEX 91.9%**, **FinMind 93.8%**; aggregate root module `./...` total is 92.6% with examples verified in their separate module
+- Data Sources: **12** (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, **TPEX**, **FinMind**)
   - **✅ TWSE (Taiwan Stock Exchange):** Fully implemented, tested, documented, and production-ready!
+  - **✅ TPEX (Taipei Exchange):** Fully implemented for OTC stocks, emerging stocks, and OTC index data!
   - **✅ FinMind:** Fully implemented, tested, documented, and production-ready with optional token authentication!
-  - **282 test functions** covering all functionality
+  - **300+ test functions** covering all functionality
   - **All source packages at 90.5%-100.0% coverage**
   - **FinMind example** with token, Taiwan stocks, dataset, and error-handling scenarios
 - Performance: 10% parser speedup, 140x faster buffer allocation, 4.5x parallel fetching
 - Documentation: 3000+ lines (sources.md 652, migration.md 750, api.md 1180) + TWSE and FinMind examples
 - CI/CD: GitHub Actions, automated testing, code coverage reporting
 - Production Ready: v1.0.0 tagged, post-v1.0.0 development includes TWSE and FinMind
-- Next Release: TBD post-FinMind release
-- **Phase 16: 100% COMPLETE (11/11 sections)** ✅
+- Next Release: TBD post-TPEX release
+- **Phase 17: 100% COMPLETE** ✅

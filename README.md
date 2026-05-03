@@ -15,7 +15,7 @@ gonp-datareader is the Go equivalent of Python's pandas-datareader, providing a 
 
 ## Features
 
-- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud, Tiingo, OECD, Eurostat, TWSE, FinMind
+- **Multiple Data Sources**: Yahoo Finance, FRED, World Bank, Alpha Vantage, Stooq, IEX Cloud, Tiingo, OECD, Eurostat, TWSE, TPEX, FinMind
 - **Simple API**: Easy-to-use interface for fetching financial and economic data
 - **Automatic Retries**: Built-in retry logic with exponential backoff
 - **Rate Limiting**: Token bucket rate limiting to respect API limits
@@ -74,6 +74,7 @@ func main() {
 | **oecd** | OECD - Economic indicators and statistics | No | `MEI/USA`, `QNA/AUS.GDP` |
 | **eurostat** | Eurostat - European Union statistics | No | `DEMO_R_D3DENS`, `GDP` |
 | **twse** | Taiwan Stock Exchange - Taiwan stock market data | No | `2330`, `0050` |
+| **tpex** | Taipei Exchange - OTC, emerging stock, and index data | No | `8069`, `00679B`, `esb:6871`, `index` |
 | **finmind** | FinMind - Taiwan & international financial data (50+ datasets) | Optional** | `2330`, `AAPL` |
 
 *FRED works without an API key but has lower rate limits
@@ -222,6 +223,7 @@ All core phases complete:
 - ✅ **OECD**: Economic indicators and statistics (SDMX-JSON format)
 - ✅ **Eurostat**: European Union statistics (JSON-stat format)
 - ✅ **TWSE**: Taiwan Stock Exchange market data (no API key required)
+- ✅ **TPEX**: Taipei Exchange OTC, emerging stock, and index data (no API key required)
 - ✅ **FinMind**: Taiwan & international financial data (50+ datasets, optional API key)
 - ✅ **Rate Limiting**: Token bucket algorithm for API limits
 - ✅ **Response Caching**: File-based caching with TTL
@@ -260,7 +262,7 @@ This project follows Test-Driven Development (TDD) methodology. All contribution
 **Version 0.1.0 Status:** ✅ **All core features complete!**
 
 Implemented features:
-- ✅ 11 data sources (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, FinMind)
+- ✅ 12 data sources (Yahoo, FRED, World Bank, Alpha Vantage, Stooq, IEX, Tiingo, OECD, Eurostat, TWSE, TPEX, FinMind)
 - ✅ Performance optimizations (10% parser speedup, 140x faster buffer pooling, 4.5x parallel fetching)
 - ✅ Comprehensive documentation and examples
 - ✅ Test coverage >90%
