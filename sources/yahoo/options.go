@@ -5,7 +5,46 @@ import (
 	"fmt"
 	"io"
 	"time"
+
+	internalhttp "github.com/julianshen/gonp-datareader/internal/http"
+	"github.com/julianshen/gonp-datareader/sources"
 )
+
+const optionsAPIURL = "https://query1.finance.yahoo.com/v7/finance/options/%s"
+
+// OptionsReader fetches options chain data from Yahoo Finance.
+type OptionsReader struct {
+	*sources.BaseSource
+	client  *internalhttp.RetryableClient
+	baseURL string
+}
+
+// NewOptionsReader creates a new options chain reader.
+func NewOptionsReader(opts *internalhttp.ClientOptions) *OptionsReader {
+	return NewOptionsReaderWithBaseURL(opts, optionsAPIURL)
+}
+
+// NewOptionsReaderWithBaseURL creates an options reader with a custom base URL.
+func NewOptionsReaderWithBaseURL(opts *internalhttp.ClientOptions, baseURL string) *OptionsReader {
+	if opts == nil {
+		opts = internalhttp.DefaultClientOptions()
+	}
+	return &OptionsReader{
+		BaseSource: sources.NewBaseSource("yahoo-options"),
+		client:     internalhttp.NewRetryableClient(opts),
+		baseURL:    baseURL,
+	}
+}
+
+// Name returns the display name.
+func (o *OptionsReader) Name() string {
+	return "Yahoo Finance Options"
+}
+
+// Client returns the underlying HTTP client.
+func (o *OptionsReader) Client() *internalhttp.RetryableClient {
+	return o.client
+}
 
 // OptionContract represents a single options contract.
 type OptionContract struct {

@@ -59,3 +59,14 @@ func TestParseOptionsJSON_YahooError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "yahoo finance error")
 }
+
+func TestOptionsReader_Struct(t *testing.T) {
+	reader := yahoo.NewOptionsReader(nil)
+	assert.NotNil(t, reader)
+	assert.NotNil(t, reader.Client())
+}
+
+func TestOptionsReader_Name(t *testing.T) {
+	reader := yahoo.NewOptionsReader(nil)
+	assert.Equal(t, "Yahoo Finance Options", reader.Name())
+}
