@@ -92,7 +92,7 @@ func parseMainboardData(row tpexMainboardQuote) (*ParsedData, error) {
 	}
 	open, high, low, close, change, err := parseOHLCChange(row.Open, row.High, row.Low, row.Close, row.Change)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse mainboard symbol %q: %w", row.SecuritiesCompanyCode, err)
 	}
 	volume, err := parseInt(row.TradingShares)
 	if err != nil {
@@ -139,7 +139,7 @@ func parseIndexData(row tpexIndexData) (*ParsedData, error) {
 	}
 	open, high, low, close, change, err := parseOHLCChange(row.Open, row.High, row.Low, row.Close, row.Change)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("parse index date %q: %w", row.Date, err)
 	}
 
 	return oneRow("index", "TPEx Index", date, open, high, low, close, 0, 0, change), nil

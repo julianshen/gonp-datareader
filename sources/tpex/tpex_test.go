@@ -41,10 +41,16 @@ func TestTPEXReader_ValidateSymbol(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		err := reader.ValidateSymbol(tt.symbol)
-		if (err != nil) != tt.wantErr {
-			t.Fatalf("ValidateSymbol(%q) error = %v, wantErr %v", tt.symbol, err, tt.wantErr)
+		name := tt.symbol
+		if name == "" {
+			name = "empty"
 		}
+		t.Run(name, func(t *testing.T) {
+			err := reader.ValidateSymbol(tt.symbol)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("ValidateSymbol(%q) error = %v, wantErr %v", tt.symbol, err, tt.wantErr)
+			}
+		})
 	}
 }
 
@@ -89,7 +95,7 @@ func TestTPEXReader_ReadSingle_RoutesMainboard(t *testing.T) {
 		if r.URL.Path != mainboardEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, mainboardEndpoint)
 		}
-		json.NewEncoder(w).Encode([]tpexMainboardQuote{{
+		writeJSON(t, w, []tpexMainboardQuote{{
 			Date:                  "2025/10/31",
 			SecuritiesCompanyCode: "8069",
 			CompanyName:           "元太",
@@ -113,7 +119,7 @@ func TestTPEXReader_ReadSingle_RoutesEmerging(t *testing.T) {
 		if r.URL.Path != emergingEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, emergingEndpoint)
 		}
-		json.NewEncoder(w).Encode([]tpexEmergingQuote{{
+		writeJSON(t, w, []tpexEmergingQuote{{
 			Date:                  "2025/10/31",
 			SecuritiesCompanyCode: "6871",
 			CompanyName:           "訊芯",
@@ -136,7 +142,7 @@ func TestTPEXReader_ReadSingle_RoutesIndex(t *testing.T) {
 		if r.URL.Path != indexEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, indexEndpoint)
 		}
-		json.NewEncoder(w).Encode([]tpexIndexData{
+		writeJSON(t, w, []tpexIndexData{
 			{Date: "2025/10/30", Open: "250.10", High: "252.20", Low: "249.30", Close: "251.80"},
 			{Date: "2025/10/31", Open: "251.80", High: "253.00", Low: "250.50", Close: "252.40"},
 		})
@@ -150,7 +156,7 @@ func TestTPEXReader_ReadSingle_RoutesIndex(t *testing.T) {
 
 func TestTPEXReader_ReadSingle_NotFound(t *testing.T) {
 	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode([]tpexMainboardQuote{})
+		writeJSON(t, w, []tpexMainboardQuote{})
 	})
 
 	_, err := reader.ReadSingle(context.Background(), "8069", testStart(), testEnd())
@@ -164,7 +170,7 @@ func TestTPEXReader_ReadSingle_IndexNoData(t *testing.T) {
 		if r.URL.Path != indexEndpoint {
 			t.Fatalf("path = %q, want %q", r.URL.Path, indexEndpoint)
 		}
-		json.NewEncoder(w).Encode([]tpexIndexData{})
+		writeJSON(t, w, []tpexIndexData{})
 	})
 
 	_, err := reader.ReadSingle(context.Background(), "index", testStart(), testEnd())
@@ -175,7 +181,7 @@ func TestTPEXReader_ReadSingle_IndexNoData(t *testing.T) {
 
 func TestTPEXReader_ReadSingle_FiltersIndexDateRange(t *testing.T) {
 	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
-		json.NewEncoder(w).Encode([]tpexIndexData{
+		writeJSON(t, w, []tpexIndexData{
 			{Date: "2025/09/30", Open: "1", High: "2", Low: "3", Close: "4"},
 			{Date: "2025/10/31", Open: "5", High: "6", Low: "7", Close: "8"},
 		})
@@ -226,7 +232,7 @@ func TestTPEXReader_ReadSingle_ParseErrors(t *testing.T) {
 				if r.URL.Path != tt.path {
 					t.Fatalf("path = %q, want %q", r.URL.Path, tt.path)
 				}
-				w.Write([]byte(tt.body))
+				writeString(t, w, tt.body)
 			})
 
 			_, err := reader.ReadSingle(context.Background(), tt.symbol, testStart(), testEnd())
@@ -265,7 +271,7 @@ func TestTPEXReader_Read(t *testing.T) {
 	reader := newTestReader(t, func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case mainboardEndpoint:
-			json.NewEncoder(w).Encode([]tpexMainboardQuote{{
+			writeJSON(t, w, []tpexMainboardQuote{{
 				Date:                  "2025/10/31",
 				SecuritiesCompanyCode: "8069",
 				CompanyName:           "元太",
@@ -275,7 +281,7 @@ func TestTPEXReader_Read(t *testing.T) {
 				Close:                 "216.50",
 			}})
 		case emergingEndpoint:
-			json.NewEncoder(w).Encode([]tpexEmergingQuote{{
+			writeJSON(t, w, []tpexEmergingQuote{{
 				Date:                  "2025/10/31",
 				SecuritiesCompanyCode: "6871",
 				CompanyName:           "訊芯",
@@ -285,7 +291,7 @@ func TestTPEXReader_Read(t *testing.T) {
 				LatestPrice:           "97.50",
 			}})
 		case indexEndpoint:
-			json.NewEncoder(w).Encode([]tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
+			writeJSON(t, w, []tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -307,14 +313,14 @@ func TestTPEXReader_Read_FetchesEachEndpointOnce(t *testing.T) {
 		counts[r.URL.Path]++
 		switch r.URL.Path {
 		case mainboardEndpoint:
-			json.NewEncoder(w).Encode([]tpexMainboardQuote{
+			writeJSON(t, w, []tpexMainboardQuote{
 				{Date: "2025/10/31", SecuritiesCompanyCode: "8069", CompanyName: "元太", Open: "1", High: "2", Low: "3", Close: "4"},
 				{Date: "2025/10/31", SecuritiesCompanyCode: "00679B", CompanyName: "元大美債20年", Open: "5", High: "6", Low: "7", Close: "8"},
 			})
 		case emergingEndpoint:
-			json.NewEncoder(w).Encode([]tpexEmergingQuote{{Date: "2025/10/31", SecuritiesCompanyCode: "6871", CompanyName: "訊芯", Highest: "2", Lowest: "1", LatestPrice: "1.5"}})
+			writeJSON(t, w, []tpexEmergingQuote{{Date: "2025/10/31", SecuritiesCompanyCode: "6871", CompanyName: "訊芯", Highest: "2", Lowest: "1", LatestPrice: "1.5"}})
 		case indexEndpoint:
-			json.NewEncoder(w).Encode([]tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
+			writeJSON(t, w, []tpexIndexData{{Date: "2025/10/31", Open: "1", High: "2", Low: "3", Close: "4"}})
 		default:
 			t.Fatalf("unexpected path %q", r.URL.Path)
 		}
@@ -377,7 +383,7 @@ func TestTPEXReader_Read_PropagatesGroupedReadErrors(t *testing.T) {
 				if r.URL.Path != tt.path {
 					t.Fatalf("path = %q, want %q", r.URL.Path, tt.path)
 				}
-				w.Write([]byte(tt.body))
+				writeString(t, w, tt.body)
 			})
 
 			_, err := reader.Read(context.Background(), tt.symbols, testStart(), testEnd())
@@ -394,6 +400,20 @@ func newTestReader(t *testing.T, handler http.HandlerFunc) *TPEXReader {
 	t.Cleanup(server.Close)
 	opts := internalhttp.DefaultClientOptions()
 	return NewTPEXReaderWithBaseURL(opts, server.URL)
+}
+
+func writeJSON(t *testing.T, w http.ResponseWriter, value interface{}) {
+	t.Helper()
+	if err := json.NewEncoder(w).Encode(value); err != nil {
+		t.Fatalf("encode response: %v", err)
+	}
+}
+
+func writeString(t *testing.T, w http.ResponseWriter, value string) {
+	t.Helper()
+	if _, err := w.Write([]byte(value)); err != nil {
+		t.Fatalf("write response: %v", err)
+	}
 }
 
 func mustReadSingle(t *testing.T, reader *TPEXReader, symbol string) *ParsedData {

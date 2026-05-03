@@ -69,13 +69,15 @@ func TestParseNumber(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		got, err := parseFloat(tt.input)
-		if err != nil {
-			t.Fatalf("parseFloat(%q) error = %v", tt.input, err)
-		}
-		if got != tt.want {
-			t.Fatalf("parseFloat(%q) = %v, want %v", tt.input, got, tt.want)
-		}
+		t.Run(tt.input, func(t *testing.T) {
+			got, err := parseFloat(tt.input)
+			if err != nil {
+				t.Fatalf("parseFloat(%q) error = %v", tt.input, err)
+			}
+			if got != tt.want {
+				t.Fatalf("parseFloat(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
 	}
 }
 
