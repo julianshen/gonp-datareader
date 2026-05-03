@@ -1,10 +1,14 @@
 package yahoo_test
 
 import (
+	"bytes"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOptionContract_StructTags(t *testing.T) {
@@ -25,4 +29,33 @@ func TestOptionContract_StructTags(t *testing.T) {
 	assert.Equal(t, "AAPL250516C00150000", contract.ContractSymbol)
 	assert.Equal(t, 150.0, contract.Strike)
 	assert.Equal(t, "CALL", contract.Type)
+}
+
+func TestParseOptionsJSON_ValidResponse(t *testing.T) {
+	data, err := os.ReadFile("testdata/options_aapl.json")
+	require.NoError(t, err)
+
+	chain, err := yahoo.ParseOptionsJSON(bytes.NewReader(data))
+	require.NoError(t, err)
+	assert.NotNil(t, chain)
+	assert.NotEmpty(t, chain.Calls)
+	assert.NotEmpty(t, chain.Puts)
+
+	call := chain.Calls[0]
+	assert.NotEmpty(t, call.ContractSymbol)
+	assert.Greater(t, call.Strike, 0.0)
+}
+
+func TestParseOptionsJSON_EmptyResult(t *testing.T) {
+	jsonData := `{"optionChain":{"result":[],"error":null}}`
+	_, err := yahoo.ParseOptionsJSON(strings.NewReader(jsonData))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no options data")
+}
+
+func TestParseOptionsJSON_YahooError(t *testing.T) {
+	jsonData := `{"optionChain":{"result":[],"error":{"code":"Not Found","description":"No data found"}}}`
+	_, err := yahoo.ParseOptionsJSON(strings.NewReader(jsonData))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "yahoo finance error")
 }

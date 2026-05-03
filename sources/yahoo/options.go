@@ -1,6 +1,11 @@
 package yahoo
 
-import "time"
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"time"
+)
 
 // OptionContract represents a single options contract.
 type OptionContract struct {
@@ -24,4 +29,98 @@ type OptionsChain struct {
 	ExpirationDate time.Time        `json:"expirationDate"`
 	Calls          []OptionContract `json:"calls"`
 	Puts           []OptionContract `json:"puts"`
+}
+
+// rawOptionContract is used to decode JSON without the time.Time field.
+type rawOptionContract struct {
+	ContractSymbol string  `json:"contractSymbol"`
+	Strike         float64 `json:"strike"`
+	Expiration     int64   `json:"expiration"`
+	Type           string  `json:"type"`
+	LastPrice      float64 `json:"lastPrice"`
+	Bid            float64 `json:"bid"`
+	Ask            float64 `json:"ask"`
+	Change         float64 `json:"change"`
+	PercentChange  float64 `json:"percentChange"`
+	Volume         int64   `json:"volume"`
+	OpenInterest   int64   `json:"openInterest"`
+	ImpliedVol     float64 `json:"impliedVolatility"`
+	InTheMoney     bool    `json:"inTheMoney"`
+}
+
+// ParseOptionsJSON parses Yahoo Finance options JSON response.
+func ParseOptionsJSON(r io.Reader) (*OptionsChain, error) {
+	var resp struct {
+		OptionChain struct {
+			Result []struct {
+				ExpirationDates []int64   `json:"expirationDates"`
+				Strikes         []float64 `json:"strikes"`
+				Options         []struct {
+					ExpirationDate int64               `json:"expirationDate"`
+					Calls          []rawOptionContract `json:"calls"`
+					Puts           []rawOptionContract `json:"puts"`
+				} `json:"options"`
+			} `json:"result"`
+			Error interface{} `json:"error"`
+		} `json:"optionChain"`
+	}
+
+	if err := json.NewDecoder(r).Decode(&resp); err != nil {
+		return nil, fmt.Errorf("decode options JSON: %w", err)
+	}
+
+	if resp.OptionChain.Error != nil {
+		return nil, fmt.Errorf("yahoo finance error: %v", resp.OptionChain.Error)
+	}
+
+	if len(resp.OptionChain.Result) == 0 || len(resp.OptionChain.Result[0].Options) == 0 {
+		return nil, fmt.Errorf("no options data found")
+	}
+
+	result := resp.OptionChain.Result[0]
+	opt := result.Options[0]
+
+	calls := make([]OptionContract, len(opt.Calls))
+	for i, rc := range opt.Calls {
+		calls[i] = OptionContract{
+			ContractSymbol: rc.ContractSymbol,
+			Strike:         rc.Strike,
+			Expiration:     time.Unix(rc.Expiration, 0),
+			Type:           "CALL",
+			LastPrice:      rc.LastPrice,
+			Bid:            rc.Bid,
+			Ask:            rc.Ask,
+			Change:         rc.Change,
+			PercentChange:  rc.PercentChange,
+			Volume:         rc.Volume,
+			OpenInterest:   rc.OpenInterest,
+			ImpliedVol:     rc.ImpliedVol,
+			InTheMoney:     rc.InTheMoney,
+		}
+	}
+
+	puts := make([]OptionContract, len(opt.Puts))
+	for i, rp := range opt.Puts {
+		puts[i] = OptionContract{
+			ContractSymbol: rp.ContractSymbol,
+			Strike:         rp.Strike,
+			Expiration:     time.Unix(rp.Expiration, 0),
+			Type:           "PUT",
+			LastPrice:      rp.LastPrice,
+			Bid:            rp.Bid,
+			Ask:            rp.Ask,
+			Change:         rp.Change,
+			PercentChange:  rp.PercentChange,
+			Volume:         rp.Volume,
+			OpenInterest:   rp.OpenInterest,
+			ImpliedVol:     rp.ImpliedVol,
+			InTheMoney:     rp.InTheMoney,
+		}
+	}
+
+	return &OptionsChain{
+		ExpirationDate: time.Unix(opt.ExpirationDate, 0),
+		Calls:          calls,
+		Puts:           puts,
+	}, nil
 }
