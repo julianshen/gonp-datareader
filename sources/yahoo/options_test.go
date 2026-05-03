@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/julianshen/gonp-datareader/sources/yahoo"
 	"github.com/stretchr/testify/assert"
@@ -115,4 +116,69 @@ func TestOptionsReader_GetOptionsChain_HTTPError(t *testing.T) {
 	_, err := reader.GetOptionsChain(context.Background(), "INVALID", nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "404")
+}
+
+func TestOptionsReader_GetExpirationDates(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/v7/finance/options/", func(w http.ResponseWriter, r *http.Request) {
+		resp := `{"optionChain":{"result":[{"expirationDates":[1750118400,1750723200],"strikes":[150,155],"options":[]}],"error":null}}`
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(resp))
+	})
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	reader := yahoo.NewOptionsReaderWithBaseURL(nil, server.URL+"/v7/finance/options/%s")
+	dates, err := reader.GetExpirationDates(context.Background(), "AAPL")
+	require.NoError(t, err)
+	assert.Len(t, dates, 2)
+	assert.Equal(t, time.Unix(1750118400, 0), dates[0])
+}
+
+func TestOptionsReader_GetExpirationDates_InvalidSymbol(t *testing.T) {
+	reader := yahoo.NewOptionsReader(nil)
+	_, err := reader.GetExpirationDates(context.Background(), "")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid symbol")
+}
+
+func TestOptionsReader_GetExpirationDates_HTTPError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not Found"))
+	}))
+	defer server.Close()
+
+	reader := yahoo.NewOptionsReaderWithBaseURL(nil, server.URL+"/%s")
+	_, err := reader.GetExpirationDates(context.Background(), "INVALID")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "404")
+}
+
+func TestOptionsReader_GetExpirationDates_YahooError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := `{"optionChain":{"result":[],"error":{"code":"Not Found","description":"No data found"}}}`
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(resp))
+	}))
+	defer server.Close()
+
+	reader := yahoo.NewOptionsReaderWithBaseURL(nil, server.URL+"/%s")
+	_, err := reader.GetExpirationDates(context.Background(), "INVALID")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "yahoo finance error")
+}
+
+func TestOptionsReader_GetExpirationDates_EmptyResult(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := `{"optionChain":{"result":[],"error":null}}`
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(resp))
+	}))
+	defer server.Close()
+
+	reader := yahoo.NewOptionsReaderWithBaseURL(nil, server.URL+"/%s")
+	_, err := reader.GetExpirationDates(context.Background(), "INVALID")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "no expiration dates found")
 }

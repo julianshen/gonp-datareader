@@ -48,6 +48,58 @@ func (o *OptionsReader) Client() *internalhttp.RetryableClient {
 	return o.client
 }
 
+// GetExpirationDates returns available expiration dates for a symbol.
+func (o *OptionsReader) GetExpirationDates(ctx context.Context, symbol string) ([]time.Time, error) {
+	if err := o.ValidateSymbol(symbol); err != nil {
+		return nil, fmt.Errorf("invalid symbol: %w", err)
+	}
+
+	url := fmt.Sprintf(o.baseURL, symbol)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	resp, err := o.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("fetch expirations: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("yahoo returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var data struct {
+		OptionChain struct {
+			Result []struct {
+				ExpirationDates []int64 `json:"expirationDates"`
+			} `json:"result"`
+			Error interface{} `json:"error"`
+		} `json:"optionChain"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return nil, fmt.Errorf("decode expirations: %w", err)
+	}
+
+	if data.OptionChain.Error != nil {
+		return nil, fmt.Errorf("yahoo finance error: %v", data.OptionChain.Error)
+	}
+
+	if len(data.OptionChain.Result) == 0 {
+		return nil, fmt.Errorf("no expiration dates found")
+	}
+
+	dates := make([]time.Time, len(data.OptionChain.Result[0].ExpirationDates))
+	for i, ts := range data.OptionChain.Result[0].ExpirationDates {
+		dates[i] = time.Unix(ts, 0)
+	}
+
+	return dates, nil
+}
+
 // GetOptionsChain fetches the options chain for a symbol.
 // If expiration is nil, returns the nearest expiration.
 func (o *OptionsReader) GetOptionsChain(ctx context.Context, symbol string, expiration *time.Time) (*OptionsChain, error) {
