@@ -251,7 +251,10 @@ func (t *TPEXReader) get(ctx context.Context, endpoint string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		detailBytes, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+		detailBytes, readErr := io.ReadAll(io.LimitReader(resp.Body, 512))
+		if readErr != nil {
+			return nil, fmt.Errorf("HTTP %d: %s; read error response: %w", resp.StatusCode, resp.Status, readErr)
+		}
 		detail := strings.TrimSpace(string(detailBytes))
 		if detail != "" {
 			return nil, fmt.Errorf("HTTP %d: %s: %s", resp.StatusCode, resp.Status, detail)
